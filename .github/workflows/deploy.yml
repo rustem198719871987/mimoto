@@ -16,6 +16,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: write   # публикация установщика в релиз «installer»
     steps:
       - uses: actions/checkout@v5
 
@@ -32,6 +34,16 @@ jobs:
 
       - name: Сборка установщика
         run: ./installer/build.sh
+
+      # Постоянная ссылка на свежий установщик — чтобы ставить сайт одной командой прямо на сервере:
+      #   curl -fLo mimoto-install.sh https://github.com/<владелец>/<репозиторий>/releases/download/installer/mimoto-install.sh
+      - name: Публикация установщика
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view installer >/dev/null 2>&1 || gh release create installer \
+            --title "Установщик MiMoto" --notes "Свежая версия установщика сайта. Обновляется автоматически при каждом изменении."
+          gh release upload installer dist/mimoto-install.sh --clobber
 
       - name: Выкладка на сервер
         env:
