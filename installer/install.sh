@@ -3,6 +3,7 @@
 # Запуск на сервере от root:  bash mimoto-install.sh
 # Без вопросов:  bash mimoto-install.sh --domain mimoto.ru --seed --autodeploy --yes
 # Повторный запуск обновляет сайт; база, фото и .env сохраняются.
+# Без домена сайт работает по IP (http://IP). Подключить домен позже:  bash mimoto-install.sh --domain mimoto.ru --yes
 set -euo pipefail
 
 INSTALL_DIR="${MIMOTO_DIR:-/opt/mimoto}"
@@ -46,15 +47,30 @@ fi
 UPDATE=0
 [ -f "$INSTALL_DIR/.env" ] && UPDATE=1
 
+# Домен приводим к виду mimoto.ru; пустой домен = сайт по IP без HTTPS
+check_domain() {
+  DOMAIN=$(printf '%s' "$DOMAIN" | tr 'A-Z' 'a-z' | sed -E 's#^https?://##; s#/.*$##; s#^www\.##')
+  [ -z "$DOMAIN" ] && return 0
+  printf '%s' "$DOMAIN" | grep -Eq '^([a-z0-9-]+\.)+[a-z]{2,}$|^([a-z0-9-]+\.)+xn--[a-z0-9-]+$' \
+    || die "Домен «$DOMAIN» выглядит неверно. Для кириллических доменов укажите punycode (xn--...)."
+}
+site_address() { if [ -n "$DOMAIN" ]; then printf '%s, www.%s' "$DOMAIN" "$DOMAIN"; else printf ':80'; fi; }
+
 # ---------- 1. Настройки ----------
 if [ "$UPDATE" = 1 ]; then
   ok "Найдена установка в $INSTALL_DIR — обновляю сайт, настройки и данные сохраняются."
-  DOMAIN=$(grep -E '^DOMAIN=' "$INSTALL_DIR/.env" | cut -d= -f2-)
+  if [ -n "$DOMAIN" ]; then
+    check_domain
+    sed -i -E "/^(DOMAIN|SITE_ADDRESS)=/d" "$INSTALL_DIR/.env"
+    printf 'DOMAIN=%s\nSITE_ADDRESS="%s"\n' "$DOMAIN" "$(site_address)" >>"$INSTALL_DIR/.env"
+    ok "Подключаю домен $DOMAIN"
+  else
+    DOMAIN=$(grep -E '^DOMAIN=' "$INSTALL_DIR/.env" | cut -d= -f2- | tr -d '"')
+    grep -q '^SITE_ADDRESS=' "$INSTALL_DIR/.env" || printf 'SITE_ADDRESS="%s"\n' "$(site_address)" >>"$INSTALL_DIR/.env"
+  fi
 else
-  [ -n "$DOMAIN" ] || ask "Домен сайта (например, mimoto.ru)" DOMAIN
-  DOMAIN=$(printf '%s' "$DOMAIN" | tr 'A-Z' 'a-z' | sed -E 's#^https?://##; s#/.*$##; s#^www\.##')
-  printf '%s' "$DOMAIN" | grep -Eq '^([a-z0-9-]+\.)+[a-z]{2,}$|^([a-z0-9-]+\.)+xn--[a-z0-9-]+$' \
-    || die "Домен «$DOMAIN» выглядит неверно. Для кириллических доменов укажите punycode (xn--...)."
+  [ -n "$DOMAIN" ] || ask "Домен сайта, например mimoto.ru (Enter — пока без домена, сайт откроется по IP)" DOMAIN ""
+  check_domain
   if [ -z "$ADMIN_PASSWORD" ]; then
     ask "Пароль для админки (Enter — сгенерировать)" ADMIN_PASSWORD ""
     [ -n "$ADMIN_PASSWORD" ] || ADMIN_PASSWORD="$(rand 'A-HJ-NP-Za-km-z2-9' 16)"
@@ -68,8 +84,10 @@ case "$AUTODEPLOY" in y|Y|yes|д|Д|да) AUTODEPLOY=yes ;; *) AUTODEPLOY=no ;; 
 
 # ---------- 2. Проверка DNS ----------
 if [ "$TEST_MODE" != 1 ]; then
-  say "Проверяю, что домен указывает на этот сервер"
   MY_IP=$(curl -4fsS --max-time 8 https://ifconfig.me 2>/dev/null || curl -4fsS --max-time 8 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')
+fi
+if [ "$TEST_MODE" != 1 ] && [ -n "$DOMAIN" ]; then
+  say "Проверяю, что домен указывает на этот сервер"
   DNS_IP=$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk 'NR==1{print $1}')
   if [ -z "$DNS_IP" ]; then
     warn "Домен $DOMAIN пока никуда не указывает. Добавьте A-запись $DOMAIN → $MY_IP (и www → $MY_IP)."
@@ -125,6 +143,7 @@ if [ "$UPDATE" != 1 ]; then
   umask 077
   cat >"$INSTALL_DIR/.env" <<EOF
 DOMAIN=$DOMAIN
+SITE_ADDRESS="$(site_address)"
 ADMIN_PASSWORD=$ADMIN_PASSWORD
 SESSION_SECRET=$(rand 'a-f0-9' 64)
 EOF
@@ -182,18 +201,24 @@ if [ "$AUTODEPLOY" = yes ]; then
 fi
 
 # ---------- Итог ----------
+if [ -n "$DOMAIN" ]; then SITE="https://$DOMAIN"; else SITE="http://${MY_IP:-IP_сервера}"; fi
 if [ "$UPDATE" != 1 ]; then
-  printf 'Сайт: https://%s\nАдминка: https://%s/admin\nПароль: %s\n' "$DOMAIN" "$DOMAIN" "$ADMIN_PASSWORD" >/root/mimoto-admin.txt
+  printf 'Сайт: %s\nАдминка: %s/admin\nПароль: %s\n' "$SITE" "$SITE" "$ADMIN_PASSWORD" >/root/mimoto-admin.txt
   chmod 600 /root/mimoto-admin.txt
 fi
 printf '\n%s Готово! %s\n' "$G" "$N"
-printf '  Сайт:     https://%s\n' "$DOMAIN"
-printf '  Админка:  https://%s/admin\n' "$DOMAIN"
+printf '  Сайт:     %s\n' "$SITE"
+printf '  Админка:  %s/admin\n' "$SITE"
 [ "$UPDATE" = 1 ] || printf '  Пароль:   %s   (сохранён в /root/mimoto-admin.txt)\n' "$ADMIN_PASSWORD"
 if [ "$AUTODEPLOY" = yes ]; then
   printf '\n  Автообновление: покажите секреты командой  cat /root/mimoto-github-secrets.txt\n'
   printf '  и вставьте три значения в GitHub (инструкция в начале файла).\n'
 fi
-printf '\n  Если сайт не открывается по https сразу — подождите 1–2 минуты, пока выпускается сертификат.\n\n'
+if [ -n "$DOMAIN" ]; then
+  printf '\n  Если сайт не открывается по https сразу — подождите 1–2 минуты, пока выпускается сертификат.\n\n'
+else
+  printf '\n  Сайт работает без домена и без HTTPS. Когда купите домен и направите его на %s, выполните:\n' "${MY_IP:-IP сервера}"
+  printf '    bash %s --domain ваш-домен.ru --yes\n\n' "$0"
+fi
 exit 0
 __MIMOTO_PAYLOAD__
