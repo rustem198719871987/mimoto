@@ -138,7 +138,7 @@ function formHtml(){
       <div class="photo-box">${ph?`<img src="${photoUrl(ph)}" alt="Фото товара">`:art(p.cat,"Фото не загружено")}</div>
       <label class="btn btn-k" for="fPhoto" style="cursor:pointer">${ph?"Заменить фото":"Загрузить фото"}</label><input type="file" id="fPhoto" accept="image/png,image/jpeg,image/webp" hidden>
       ${ph?'<button type="button" class="link-btn" data-act="photo-rm">Убрать фото</button>':""}
-      <p class="hint" id="fPhotoState" aria-live="polite">JPG, PNG или WebP до 10 МБ. Лучше светлый фон и формат 4:3.</p>
+      <p class="hint" id="fPhotoState" aria-live="polite">JPG, PNG или WebP. Большие фото уменьшатся сами. Лучше светлый фон и формат 4:3.</p>
     </div>
    </div>
   </form></div>`;
@@ -147,12 +147,28 @@ const FIELDS=["fName","fCat","fStock","fPrice","fOld","fDesc","fSpecs","fRate","
 function collect(){const o={};FIELDS.forEach(i=>{o[i]=$("#"+i).value});o.fHit=$("#fHit").checked;o.fShow=$("#fShow").checked;return o}
 function refill(o){Object.entries(o).forEach(([k,v])=>{const el=$("#"+k);if(!el)return;if(el.type==="checkbox")el.checked=v;else el.value=v})}
 function rerenderForm(){const keep=collect();$("#view").innerHTML=formHtml();refill(keep)}
+// Фото с телефона весят 3–8 МБ: уменьшаем до 1600 px по длинной стороне и сохраняем в JPEG ~85%.
+// Так снимок занимает 200–400 КБ — меньше места на диске сервера и быстрее загрузка сайта.
+const MAX_SIDE=1600;
+async function shrinkPhoto(file){
+  try{
+    const img=await createImageBitmap(file);
+    const k=Math.min(1,MAX_SIDE/Math.max(img.width,img.height));
+    if(k===1&&file.size<800*1024){img.close();return file}
+    const c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    const ctx=c.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);img.close();
+    const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.85));
+    return blob&&blob.size<file.size?blob:file;
+  }catch(e){return file}
+}
 async function uploadPhoto(file){
   const st=$("#fPhotoState");if(!file)return;
   if(!/^image\/(png|jpeg|webp)$/.test(file.type)){st.textContent="Подходят только JPG, PNG или WebP.";return}
-  if(file.size>10*1024*1024){st.textContent="Файл больше 10 МБ. Уменьшите фото и попробуйте снова.";return}
-  st.textContent="Загружаем фото…";
-  const fd=new FormData();fd.append("photo",file);
+  if(file.size>40*1024*1024){st.textContent="Файл больше 40 МБ. Выберите другое фото.";return}
+  st.textContent="Уменьшаем и загружаем фото…";
+  const photo=await shrinkPhoto(file);
+  if(photo.size>10*1024*1024){st.textContent="Не удалось уменьшить фото до 10 МБ. Выберите другое фото.";return}
+  const fd=new FormData();fd.append("photo",photo,"photo.jpg");
   try{const r=await api("POST","/api/admin/upload",fd,true);adm.photo=r.photo;rerenderForm();$("#fPhotoState").textContent="Фото загружено. Нажмите «Сохранить», чтобы применить."}
   catch(e){if(!(e instanceof AuthError))st.textContent=e.message}
 }

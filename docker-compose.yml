@@ -1,9 +1,17 @@
 # Магазин + Caddy (автоматический HTTPS-сертификат для вашего домена).
 # Запуск: docker compose up -d --build
+# Журналы контейнеров не больше 3 файлов по 10 МБ, чтобы не заполнить диск
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   shop:
     build: .
     restart: unless-stopped
+    logging: *logging
     env_file: .env
     environment:
       DATA_DIR: /app/data
@@ -13,6 +21,7 @@ services:
   caddy:
     image: caddy:2.10-alpine
     restart: unless-stopped
+    logging: *logging
     ports:
       - "80:80"
       - "443:443"

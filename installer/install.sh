@@ -81,9 +81,21 @@ if [ "$TEST_MODE" != 1 ]; then
   fi
 fi
 
-# ---------- 3. Docker и защита сервера ----------
+# ---------- 3. Подкачка, Docker и защита сервера ----------
 if [ "$TEST_MODE" != 1 ]; then
   export DEBIAN_FRONTEND=noninteractive
+  # На серверах с 1 ГБ памяти сборке Docker может не хватить памяти — добавляем файл подкачки 2 ГБ
+  MEM_MB=$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)
+  if [ "$MEM_MB" -lt 1900 ] && [ -z "$(swapon --noheadings 2>/dev/null)" ]; then
+    say "Памяти ${MEM_MB} МБ — добавляю файл подкачки 2 ГБ"
+    fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+    chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile
+    grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >>/etc/fstab
+    echo 'vm.swappiness=10' >/etc/sysctl.d/99-mimoto.conf && sysctl -q -p /etc/sysctl.d/99-mimoto.conf
+    ok "Подкачка включена"
+  fi
+  FREE_GB=$(df -BG --output=avail / | tail -1 | tr -dc '0-9')
+  [ "${FREE_GB:-0}" -ge 3 ] || warn "На диске свободно всего ${FREE_GB} ГБ — для установки нужно хотя бы 3 ГБ."
   if ! command -v docker >/dev/null || ! docker compose version >/dev/null 2>&1; then
     say "Устанавливаю Docker (2–3 минуты)"
     apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null
@@ -126,6 +138,7 @@ if [ "$TEST_MODE" = 1 ]; then ok "Тестовый режим: Docker не за�
 say "Собираю и запускаю сайт (первый раз 2–4 минуты)"
 cd "$INSTALL_DIR"
 docker compose up -d --build --remove-orphans
+docker image prune -f >/dev/null 2>&1 || true   # старые версии образа после обновления занимают место
 say "Жду, пока сервер ответит"
 for _ in $(seq 1 60); do
   if docker compose exec -T shop wget -qO- http://127.0.0.1:3000/api/products >/dev/null 2>&1; then READY=1; break; fi
