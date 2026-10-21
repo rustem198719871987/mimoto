@@ -42,6 +42,9 @@ test("витрина отдаёт страницу, категории и пус
   assert.match(await (await fetch(base + "/js/categories.js")).text(), /window\.CATS=.*enduro/);
   assert.deepEqual((await json(await fetch(base + "/api/products"))).body, []);
   assert.equal((await fetch(base + "/admin")).status, 200);
+  // после обновления сайта браузер должен сразу брать новые стили и скрипты
+  for (const f of ["/css/admin.css", "/js/shop.js", "/"]) assert.equal((await fetch(base + f)).headers.get("cache-control"), "no-cache", f);
+  assert.match((await fetch(base + "/img/logo-mark.jpg")).headers.get("cache-control"), /max-age=3600/);
 });
 
 test("админка закрыта без входа и с неверным паролем", async () => {

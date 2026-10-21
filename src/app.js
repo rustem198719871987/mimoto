@@ -240,7 +240,13 @@ function createApp(config) {
 
   app.use("/uploads", express.static(uploadsDir, { maxAge: "30d", immutable: true, index: false }));
   app.get("/admin", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "admin.html")));
-  app.use(express.static(PUBLIC_DIR, { index: "index.html", maxAge: "1h" }));
+  // Страницы, стили и скрипты браузер сверяет с сервером при каждом заходе (по ETag, без лишней загрузки),
+  // чтобы после обновления сайта сразу видеть новую версию. Картинки можно кэшировать надолго.
+  app.use(express.static(PUBLIC_DIR, {
+    index: "index.html",
+    maxAge: "1h",
+    setHeaders: (res, file) => { if (/\.(html|css|js)$/.test(file)) res.setHeader("Cache-Control", "no-cache"); },
+  }));
 
   app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
