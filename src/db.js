@@ -23,22 +23,6 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TEXT    NOT NULL,
   updated_at TEXT    NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS orders (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  kind       TEXT    NOT NULL,
-  name       TEXT    NOT NULL DEFAULT '',
-  phone      TEXT    NOT NULL,
-  delivery   TEXT,
-  payment    TEXT,
-  comment    TEXT    NOT NULL DEFAULT '',
-  items      TEXT    NOT NULL DEFAULT '[]',
-  total      INTEGER NOT NULL DEFAULT 0,
-  status     TEXT    NOT NULL DEFAULT 'new',
-  note       TEXT    NOT NULL DEFAULT '',
-  created_at TEXT    NOT NULL
-);
-CREATE INDEX IF NOT EXISTS orders_status ON orders(status, id);
 `;
 
 function open(file) {
@@ -69,26 +53,4 @@ function rowToProduct(r) {
   };
 }
 
-function rowToOrder(r) {
-  let items = [];
-  try { items = JSON.parse(r.items); } catch { items = []; }
-  return {
-    id: r.id,
-    number: orderNumber(r.id),
-    kind: r.kind,
-    name: r.name,
-    phone: r.phone,
-    delivery: r.delivery,
-    payment: r.payment,
-    comment: r.comment,
-    items,
-    total: r.total,
-    status: r.status,
-    note: r.note,
-    createdAt: r.created_at,
-  };
-}
-
-const orderNumber = (id) => "MM-" + String(id).padStart(5, "0");
-
-module.exports = { open, rowToProduct, rowToOrder, orderNumber };
+module.exports = { open, rowToProduct };

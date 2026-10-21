@@ -14,9 +14,6 @@ const app = createApp({
   dataDir: path.resolve(env.DATA_DIR || path.join(__dirname, "data")),
   adminPassword: env.ADMIN_PASSWORD || "",
   sessionSecret: env.SESSION_SECRET || crypto.randomBytes(32).toString("hex"),
-  telegramToken: env.TELEGRAM_BOT_TOKEN || "",
-  telegramChatId: env.TELEGRAM_CHAT_ID || "",
-  siteUrl: env.SITE_URL || "",
 });
 
 const port = +env.PORT || 3000;

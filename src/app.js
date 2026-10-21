@@ -1,4 +1,5 @@
-// HTTP-приложение магазина: витрина, публичное API и админка.
+// HTTP-приложение магазина: витрина, каталог для неё и админка товаров.
+// Покупки идут через WhatsApp магазина, данные покупателей сайт не принимает.
 const path = require("node:path");
 const fs = require("node:fs");
 const crypto = require("node:crypto");
@@ -6,10 +7,10 @@ const express = require("express");
 const multer = require("multer");
 
 const CATS = require("./categories");
-const { open, rowToProduct, rowToOrder, orderNumber } = require("./db");
+const { open, rowToProduct } = require("./db");
 const validate = require("./validate");
+const wa = require("../public/js/wa.js");
 const { createAuth } = require("./auth");
-const { createNotifier } = require("./telegram");
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 
@@ -44,7 +45,6 @@ function createApp(config) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   const db = open(path.join(config.dataDir, "shop.db"));
   const auth = createAuth({ password: config.adminPassword, secret: config.sessionSecret });
-  const notifier = createNotifier({ token: config.telegramToken, chatId: config.telegramChatId, siteUrl: config.siteUrl, log });
 
   const now = () => new Date().toISOString();
   const newId = () => "p" + crypto.randomBytes(6).toString("hex");
@@ -61,13 +61,6 @@ function createApp(config) {
     photoUses: db.prepare("SELECT COUNT(*) AS n FROM products WHERE photo = ?"),
     allPhotos: db.prepare("SELECT DISTINCT photo FROM products WHERE photo IS NOT NULL"),
     maxSort: db.prepare("SELECT COALESCE(MAX(sort), 0) AS m FROM products"),
-    orderInsert: db.prepare(`INSERT INTO orders (kind,name,phone,delivery,payment,comment,items,total,created_at)
-      VALUES (:kind,:name,:phone,:delivery,:payment,:comment,:items,:total,:now)`),
-    orders: db.prepare("SELECT * FROM orders ORDER BY id DESC LIMIT 500"),
-    ordersBy: db.prepare("SELECT * FROM orders WHERE status = ? ORDER BY id DESC LIMIT 500"),
-    orderGet: db.prepare("SELECT * FROM orders WHERE id = ?"),
-    orderUpdate: db.prepare("UPDATE orders SET status = :status, note = :note WHERE id = :id"),
-    newCount: db.prepare("SELECT COUNT(*) AS n FROM orders WHERE status = 'new'"),
   };
 
   const params = (id, p) => ({
@@ -128,24 +121,29 @@ function createApp(config) {
     res.set("Cache-Control", "no-cache").json(q.visible.all().map(rowToProduct));
   });
 
-  const orderLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 8, message: "Слишком много заявок подряд. Попробуйте через 10 минут или позвоните нам." });
-  app.post("/api/orders", express.json({ limit: "50kb" }), orderLimit, (req, res) => {
-    if (req.body && req.body.website) return res.json({ number: orderNumber(0) }); // ловушка для ботов
-    const { value, error } = validate.order(req.body);
-    if (error) return res.status(400).json({ error });
-
-    const items = [];
-    for (const i of value.items) {
-      const r = q.get.get(i.id);
-      if (!r || r.hidden) return res.status(400).json({ error: "Один из товаров больше не продаётся. Обновите страницу." });
-      if (value.kind === "order" && r.stock === "out") return res.status(400).json({ error: `«${r.name}» закончился. Уберите его из корзины.` });
-      items.push({ id: r.id, name: r.name, price: r.price, qty: i.qty });
+  // Короткие ссылки из QR-кодов: собираем то же сообщение, что и кнопка на сайте, и отправляем в WhatsApp.
+  app.get("/w", (req, res) => {
+    const qs = req.query;
+    const product = (id) => {
+      const r = typeof id === "string" && validate.ID_RE.test(id) ? q.get.get(id) : null;
+      return r && !r.hidden ? r : null;
+    };
+    let text = wa.text("consult");
+    if (product(qs.p)) text = wa.text("product", product(qs.p));
+    else if (product(qs.s)) text = wa.text("soon", product(qs.s));
+    else if (typeof qs.c === "string") {
+      const items = qs.c.split(",").slice(0, 50).map((part) => {
+        const [id, qty] = part.split(".");
+        const r = product(id);
+        return r && { name: r.name, price: r.price, qty: Math.min(99, Math.max(1, Math.round(+qty) || 1)) };
+      }).filter(Boolean);
+      if (items.length) text = wa.text("cart", { items });
+    } else if (typeof qs.q === "string") {
+      const [cat, budget] = qs.q.split(".");
+      const c = CATS.find((x) => x.id === cat), b = wa.BUDGETS[+budget];
+      text = wa.text("quiz", { cat: c && c.quiz, budget: b && b[0] });
     }
-    const total = items.reduce((s, i) => s + i.price * i.qty, 0);
-    const info = q.orderInsert.run({ ...value, items: JSON.stringify(items), total, now: now() });
-    const order = rowToOrder(q.orderGet.get(info.lastInsertRowid));
-    notifier.notify(order);
-    res.status(201).json({ number: order.number });
+    res.set("Cache-Control", "no-store").redirect(302, wa.url(text));
   });
 
   // ---------- вход в админку ----------
@@ -235,22 +233,6 @@ function createApp(config) {
       }
     });
     res.json({ added, updated, skipped });
-  });
-
-  admin.get("/orders", (req, res) => {
-    const status = validate.ORDER_STATUS[req.query.status] ? req.query.status : null;
-    const rows = status ? q.ordersBy.all(status) : q.orders.all();
-    res.json({ orders: rows.map(rowToOrder), newCount: q.newCount.get().n });
-  });
-
-  admin.patch("/orders/:id", (req, res) => {
-    const cur = q.orderGet.get(+req.params.id || 0);
-    if (!cur) return res.status(404).json({ error: "Заявка не найдена." });
-    const b = req.body || {};
-    const status = validate.ORDER_STATUS[b.status] ? b.status : cur.status;
-    const note = "note" in b ? String(b.note ?? "").slice(0, 2000) : cur.note;
-    q.orderUpdate.run({ id: cur.id, status, note });
-    res.json(rowToOrder(q.orderGet.get(cur.id)));
   });
 
   app.use("/api/admin", admin);

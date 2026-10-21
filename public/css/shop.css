@@ -2,7 +2,7 @@
 :root{
   --black:#0A0A0A; --ink:#141414; --yellow:#FCCB05; --yellow-d:#E0B400; --yellow-soft:#FFF4C2;
   --white:#FFFFFF; --paper:#F4F3EF; --line:#E4E2DA; --muted:#5E5C55; --muted-d:#A9A79F;
-  --ok:#2E9E44; --sale:#D93025;
+  --ok:#2E9E44; --sale:#D93025; --wa:#25D366; --wa-d:#1EBE5A;
   --display:"Exo 2", "Arial Narrow", system-ui, sans-serif;
   --body:"Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
   --wrap:1320px;
@@ -28,6 +28,7 @@ button{cursor:pointer}
 .btn:active{transform:translateY(1px)}
 .btn-y{background:var(--yellow);color:var(--black)}.btn-y:hover{background:var(--yellow-d)}
 .btn-k{background:var(--black);color:var(--white)}.btn-k:hover{background:#2a2a2a}
+.btn-wa{background:var(--wa);color:var(--black);clip-path:none}.btn-wa:hover{background:var(--wa-d)}
 .btn-o{background:var(--white);color:var(--black);box-shadow:inset 0 0 0 2px var(--black);clip-path:none}.btn-o:hover{background:var(--paper)}
 .icon-btn{width:44px;height:44px;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center}
 section{padding-block:56px}
@@ -243,20 +244,8 @@ footer{background:var(--ink);color:#C9C7C0;padding-block:48px 24px;font-size:14p
 
 /* чат и тост */
 .chat-fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:12px;background:var(--black);color:var(--white);border:0;padding:8px 18px 8px 8px;box-shadow:0 10px 24px rgba(0,0,0,.3)}
-.chat-fab .av{position:relative;width:44px;height:44px;border-radius:50%;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-style:italic;font-weight:900;color:var(--black);font-size:18px}
+.chat-fab .av{position:relative;width:44px;height:44px;border-radius:50%;background:var(--wa);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-style:italic;font-weight:900;color:var(--black);font-size:18px}
 .chat-fab .av::after{content:"";position:absolute;top:0;right:0;width:12px;height:12px;border-radius:50%;background:#3BD15A;border:2px solid var(--black)}
-.chat{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:50;width:min(340px,calc(100% - 32px));background:var(--white);border:2px solid var(--black);box-shadow:0 18px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;max-height:60vh}
-.chat-h{background:var(--black);color:var(--white);padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
-.chat-h .icon-btn{color:var(--white);width:36px;height:36px}
-.chat-b{padding:12px;overflow:auto;display:grid;gap:8px;align-content:start;min-height:160px}
-.msg{padding:8px 12px;font-size:14px;max-width:85%}
-.msg.them{background:var(--paper)}
-.msg.me{background:var(--yellow);justify-self:end}
-.chat-form{display:grid;gap:8px;border-top:1px solid var(--line);padding:10px}
-.chat-form textarea,.chat-form input{border:2px solid var(--black);padding:8px 10px;min-width:0;width:100%;font-size:14px}
-.chat-form textarea{height:64px;resize:vertical}
-.chat-form button{border:0;background:var(--yellow);min-height:44px;font-weight:700}
-.chat-form .note{margin:0;font-size:11px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:70;background:var(--black);color:var(--white);padding:12px 18px;border-left:6px solid var(--yellow);font-weight:600;box-shadow:0 10px 24px rgba(0,0,0,.3)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
@@ -307,6 +296,19 @@ footer{background:var(--ink);color:#C9C7C0;padding-block:48px 24px;font-size:14p
 .photo-box svg{width:80%;height:auto}
 .adm-msg{padding:28px;background:var(--paper);text-align:center}
 .save-state{font-size:13px;color:var(--muted-d)}
+
+/* покупка через WhatsApp */
+.buy{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:28px;align-items:start}
+.buy-qr{display:grid;gap:10px;justify-items:center}
+.qr{width:100%;max-width:260px;aspect-ratio:1/1;background:var(--white);border:2px solid var(--black);padding:6px}
+.qr svg{display:block;width:100%;height:100%}
+.buy-info{display:grid;gap:14px;align-content:start;min-width:0}
+.buy-item{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center}
+.buy-item .pic{aspect-ratio:4/3}.buy-item .pic::before{display:none}
+.wa-msg{background:var(--paper);border-left:4px solid var(--wa);padding:10px 12px;font-size:14px;white-space:pre-line;overflow-wrap:anywhere}
+.chat-fab .av::after{display:none}
+@media (hover:none) and (pointer:coarse){.buy{grid-template-columns:1fr}.buy-qr{display:none}}
+@media (max-width:640px){.buy{grid-template-columns:1fr}.buy-qr{display:none}}
 
 @media (max-width:860px){
   .adm-form{grid-template-columns:1fr}

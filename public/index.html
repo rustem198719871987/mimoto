@@ -46,7 +46,7 @@
     </form>
     <div class="phone">
       <a href="tel:+79172270808" style="text-decoration:none;color:inherit"><b>+7 (917) 227-08-08</b></a>
-      <button type="button" data-open="callback">Заказать звонок</button>
+      <button type="button" data-open="callback">Написать в WhatsApp</button>
     </div>
     <div class="head-ico">
       <button type="button" id="favBtn" aria-label="Избранное">
@@ -130,9 +130,9 @@
     <div class="wrap">
       <div>
         <h2 class="h2" id="ctaT" style="color:var(--white)">Не знаете, что <span style="color:var(--yellow)">выбрать?</span></h2>
-        <p>Оставьте номер — менеджер подберёт технику под ваш бюджет и задачи.</p>
+        <p>Напишите нам в WhatsApp — менеджер подберёт технику под ваш бюджет и задачи.</p>
       </div>
-      <button type="button" class="btn btn-y" data-open="callback" style="position:relative;z-index:2;box-shadow:0 0 0 3px var(--black)">Оставить заявку</button>
+      <button type="button" class="btn btn-y" data-open="callback" style="position:relative;z-index:2;box-shadow:0 0 0 3px var(--black)">Написать в WhatsApp</button>
     </div>
   </section>
 </main>
@@ -156,25 +156,15 @@
   </div>
 </footer>
 
-<button class="chat-fab" id="chatFab" aria-expanded="false" aria-controls="chat"><span class="av">M</span><span class="lbl">Мы онлайн, задавайте вопросы</span></button>
-<div class="chat" id="chat" hidden>
-  <div class="chat-h"><b>Чат с MiMoto</b><button class="icon-btn" id="chatClose" aria-label="Закрыть чат"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-  <div class="chat-b" id="chatB"><div class="msg them">Здравствуйте! Подскажем по технике, наличию и рассрочке. Что вас интересует?</div></div>
-  <form id="chatForm" class="chat-form" novalidate>
-    <label for="chatIn" class="sr">Ваш вопрос</label><textarea id="chatIn" placeholder="Ваш вопрос"></textarea>
-    <label for="chatPhone" class="sr">Телефон для ответа</label><input id="chatPhone" type="tel" autocomplete="tel" placeholder="Телефон для ответа">
-    <input name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-    <p class="err" id="chatErr" hidden></p>
-    <button type="submit">Отправить</button>
-    <p class="note">Отправляя вопрос, вы соглашаетесь с <a href="/privacy.html" target="_blank" rel="noopener">политикой обработки персональных данных</a>.</p>
-  </form>
-</div>
+<button class="chat-fab" id="chatFab"><span class="av"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm4.5 12.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.7a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.6-.3z"/></svg></span><span class="lbl">Написать в WhatsApp</span></button>
 
 <div id="layer"></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="/js/categories.js"></script>
 <script src="/js/common.js"></script>
+<script src="/js/wa.js"></script>
+<script src="/js/qrcode.js"></script>
 <script src="/js/shop.js"></script>
 </body>
 </html>

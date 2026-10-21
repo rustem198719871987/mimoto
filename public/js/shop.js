@@ -19,7 +19,7 @@ const PERKS=[
  ["Самовывоз через 60 минут",'<path d="M3 7l9-4 9 4v10l-9 4-9-4V7z"/><path d="M3 7l9 4 9-4M12 11v10M7.5 5l9 4"/>']
 ];
 const SLIDES=[
- {kick:"Хранение мототехники.",title:"Сохраните технику в идеале до следующего сезона!",text:"Консервация, мойка и тёплый бокс на зиму. Весной заберёте готовый к выезду мотоцикл.",art:"enduro",dark:false,cta:"Оставить заявку",act:"callback"},
+ {kick:"Хранение мототехники.",title:"Сохраните технику в идеале до следующего сезона!",text:"Консервация, мойка и тёплый бокс на зиму. Весной заберёте готовый к выезду мотоцикл.",art:"enduro",dark:false,cta:"Написать в WhatsApp",act:"callback"},
  {kick:"Сезон снегоходов открыт.",title:"Снегоходы и буксировщики в наличии",text:"Подготовим технику к зиме, поможем с регистрацией и прицепом.",art:"snow",dark:true,cta:"Смотреть снегоходы",act:"cat:snow"},
  {kick:"Рассрочка 0%.",title:"Забирай мото сегодня — плати частями",text:"Без первого взноса и переплаты на срок до 36 месяцев. Решение за 15 минут.",art:"pit",dark:false,cta:"Подобрать технику",act:"quiz"}
 ];
@@ -65,7 +65,8 @@ function card(p){
 }
 function picHtml(p){return p.photo?`<img src="${photoUrl(p.photo)}" alt="${esc(p.name)}" loading="lazy">`:art(p.cat,p.name)}
 function stockHtml(p){return `<div class="stock ${p.stock}">${p.stock==="in"?"В наличии в Арске":STOCK[p.stock]}</div>`}
-function addBtn(p,extra){return p.stock==="out"?`<button class="btn btn-y" disabled ${extra||""}>Нет в наличии</button>`:`<button class="btn btn-y" data-add="${p.id}" ${extra||""}>${cart[p.id]?"В корзине":"В корзину"}</button>`}
+function addBtn(p,extra){return p.stock==="out"?`<button class="btn btn-y" disabled ${extra||""}>Нет в наличии</button>`:`<button class="btn btn-y" data-buy="${p.id}" ${extra||""}>Купить</button>`}
+function cartBtn(p){return p.stock==="out"?"":`<button class="btn btn-o" data-add="${p.id}">${cart[p.id]?"В корзине":"В корзину"}</button>`}
 
 /* ---------- город ---------- */
 const CITIES=["Арск","Казань","Москва","Санкт-Петербург","Екатеринбург","Новосибирск","Краснодар","Нижний Новгород","Ростов-на-Дону"];
@@ -114,7 +115,7 @@ function restart(){clearInterval(slideT);if(!matchMedia("(prefers-reduced-motion
 function renderHits(){const h=visible().filter(p=>p.hit);$("#hits").innerHTML=!loaded?waitMsg():h.length?h.map(card).join(""):`<div class="empty"><p style="margin:0">Скоро здесь появятся хиты продаж.</p></div>`}
 
 /* ---------- подбор ---------- */
-const BUDGETS=[["до 100 000 ₽",0,100000],["100 000 – 200 000 ₽",100000,200000],["200 000 – 400 000 ₽",200000,400000],["от 400 000 ₽",400000,1e9],["Пока не знаю",0,1e9]];
+const {SHOP,BUDGETS}=MMwa;
 function renderQuiz(){
   const st=$("#quizSteps").children;
   [...st].forEach((s,i)=>s.classList.toggle("on",i<quiz.step));
@@ -129,11 +130,8 @@ function renderQuiz(){
     const exact=list.length>0;
     if(!exact)list=visible().filter(p=>p.cat===quiz.type).sort((a,b)=>Math.abs(a.price-lo)-Math.abs(b.price-lo)).slice(0,3);
     b.innerHTML=`<div class="quiz-res"><div><p style="margin:0 0 16px;font-size:17px">${exact?`Подходит ${list.length} ${plural(list.length,"модель","модели","моделей")}`:"В этом бюджете моделей нет — вот ближайшие"} · ${catById[quiz.type].quiz}, ${lbl}</p><div class="grid">${list.map(card).join("")}</div><button class="link-btn" data-qreset style="margin-top:14px">← Начать подбор заново</button></div>
-    <form class="panel" id="quizForm" novalidate><h3>Получите консультацию</h3><p style="margin:0;color:#D9D8D2;font-size:14px">Менеджер расскажет о наличии, тест-драйве и рассрочке.</p>
-    <div class="field"><label for="qName">Имя</label><input id="qName" autocomplete="given-name" required></div>
-    <div class="field"><label for="qPhone">Телефон</label><input id="qPhone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__" required></div>
-    <p class="err" id="qErr" hidden></p>
-    <button class="btn btn-y" type="submit">Жду звонка</button><p class="note" style="color:var(--muted-d);margin:0">Нажимая кнопку, вы соглашаетесь с <a style="color:var(--white)" href="/privacy.html" target="_blank" rel="noopener">политикой обработки персональных данных</a>.</p><input name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true"></form></div>`;
+    <div class="panel"><h3>Обсудить подборку</h3><p style="margin:0;color:#D9D8D2;font-size:14px">Напишите нам в WhatsApp — расскажем о наличии, тест-драйве и рассрочке. Сообщение с вашей подборкой уже готово.</p>
+    <button class="btn btn-wa" data-buy-quiz>${WA_ICON} Написать в WhatsApp</button></div></div>`;
   }
 }
 
@@ -190,60 +188,44 @@ function openDetail(id){
   ${p.desc?`<p style="margin:12px 0 0;white-space:pre-line">${esc(p.desc)}</p>`:""}
   ${p.specs.length?`<dl class="specs">${p.specs.map(s=>`<div><dt>${esc(s.k)}</dt><dd>${esc(s.v)}</dd></div>`).join("")}</dl>`:'<div style="height:14px"></div>'}
   <div class="price-row" style="margin-bottom:14px"><div class="price" style="font-size:30px">${rub(p.price)}${p.old?`<s>${rub(p.old)}</s>`:""}</div><div class="credit">В рассрочку<b>от ${rub(monthly(p.price))} / мес.</b></div></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${addBtn(p,"autofocus")}<button class="btn btn-o" data-open="callback">Задать вопрос</button></div></div></div></div>`);
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${addBtn(p,"autofocus")}${cartBtn(p)||`<button class="btn btn-o" data-soon="${p.id}">Узнать о поступлении</button>`}</div></div></div></div>`);
 }
 function openCart(){
   const ids=Object.keys(cart).filter(id=>byId[id]);
   const sum=ids.reduce((s,id)=>s+byId[id].price*cart[id],0);
   openLayer(`<div class="drawer-h"><h2 class="disp">Корзина</h2><button class="icon-btn" data-close aria-label="Закрыть корзину">${X}</button></div>
   <div class="drawer-b">${ids.length?ids.map(id=>{const p=byId[id];return `<div class="line"><div class="pic">${picHtml(p)}</div><div><div class="nm">${esc(p.name)}</div><div class="qty"><button data-qty="${id}" data-d="-1" aria-label="Меньше">−</button><span aria-live="polite">${cart[id]}</span><button data-qty="${id}" data-d="1" aria-label="Больше">+</button></div><br><button class="rm" data-rm="${id}">Удалить</button></div><b style="white-space:nowrap;font-variant-numeric:tabular-nums">${rub(p.price*cart[id])}</b></div>`}).join(""):`<div class="empty" style="grid-column:auto"><p style="margin:0 0 12px;font-weight:600">Корзина пуста</p><button class="btn btn-y" data-close data-goto="catalog">Перейти в каталог</button></div>`}</div>
-  ${ids.length?`<div class="drawer-f"><div class="total"><span>Итого</span><b>${rub(sum)}</b></div><div class="credit" style="white-space:normal">В рассрочку от <b style="display:inline">${rub(monthly(sum))} / мес.</b> на 36 месяцев</div><button class="btn btn-y" data-checkout>Оформить заказ</button></div>`:""}`,"drawer");
+  ${ids.length?`<div class="drawer-f"><div class="total"><span>Итого</span><b>${rub(sum)}</b></div><div class="credit" style="white-space:normal">В рассрочку от <b style="display:inline">${rub(monthly(sum))} / мес.</b> на 36 месяцев</div><button class="btn btn-wa" data-buy-cart>${WA_ICON} Купить через WhatsApp</button></div>`:""}`,"drawer");
 }
-function openCheckout(){
-  const ids=Object.keys(cart).filter(id=>byId[id]);
-  const sum=ids.reduce((s,id)=>s+byId[id].price*cart[id],0);
-  openLayer(`<div class="modal-h"><h2 class="h2">Оформление заказа</h2><button class="icon-btn" data-close aria-label="Закрыть">${X}</button></div>
-  <div class="modal-b"><form class="form" id="orderForm" novalidate>
-   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
-    <div class="field"><label for="oName">Имя и фамилия</label><input id="oName" autocomplete="name" required autofocus></div>
-    <div class="field"><label for="oPhone">Телефон</label><input id="oPhone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__" required></div>
-   </div>
-   <fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:700;margin-bottom:8px">Получение</legend><div class="seg">
-    <label><input type="radio" name="dlv" value="pickup" checked> Самовывоз, ${SHOP_CITY}</label>
-    <label><input type="radio" name="dlv" value="city"> Доставка по городу</label>
-    <label><input type="radio" name="dlv" value="russia"> Транспортная компания</label></div></fieldset>
-   <fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:700;margin-bottom:8px">Оплата</legend><div class="seg">
-    <label><input type="radio" name="pay" value="receipt" checked> При получении</label>
-    <label><input type="radio" name="pay" value="credit"> Рассрочка 0%</label>
-    <label><input type="radio" name="pay" value="invoice"> Счёт для юрлица</label></div></fieldset>
-   <div class="field"><label for="oCom">Комментарий</label><textarea id="oCom" placeholder="Например, удобное время звонка"></textarea></div>
-   <div class="total" style="border-top:2px solid var(--black);padding-top:12px"><span>${ids.length} ${plural(ids.length,"позиция","позиции","позиций")}</span><b>${rub(sum)}</b></div>
-   <p class="err" id="oErr" hidden></p>
-   <button class="btn btn-y" type="submit">Подтвердить заказ</button>
-   <p class="note" style="margin:0">Оплата на сайте не принимается: менеджер позвонит и подтвердит заказ.</p><p class="note" style="margin:0">Нажимая кнопку, вы соглашаетесь с <a href="/privacy.html" target="_blank" rel="noopener">политикой обработки персональных данных</a>.</p><input name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-  </form></div>`);
+/* ---------- покупка через WhatsApp ---------- */
+// Сайт не собирает данные покупателя: «Купить» открывает WhatsApp магазина с готовым сообщением.
+// На компьютере показываем QR-код для телефона, на телефоне — кнопку, которая сразу открывает WhatsApp.
+const WA_ICON=`<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.7a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.6-.3z"/></svg>`;
+// Сообщение для WhatsApp и короткая ссылка для QR-кода (тексты — в wa.js, общие с сервером)
+function waRequest(kind,arg){
+  if(kind==="product"||kind==="soon"){const p=byId[arg];return{text:MMwa.text(kind,p),path:MMwa.shortPath(kind,p.id)}}
+  if(kind==="cart"){
+    const ids=Object.keys(cart).filter(id=>byId[id]);
+    return{text:MMwa.text("cart",{items:ids.map(id=>({name:byId[id].name,price:byId[id].price,qty:cart[id]}))}),path:MMwa.shortPath("cart",ids.map(id=>({id,qty:cart[id]})))};
+  }
+  if(kind==="quiz"){const c=catById[quiz.type],b=BUDGETS[quiz.budget];return{text:MMwa.text("quiz",{cat:c&&c.quiz,budget:b&&b[0]}),path:MMwa.shortPath("quiz",{cat:quiz.type,budget:quiz.budget})}}
+  return{text:MMwa.text("consult"),path:MMwa.shortPath("consult")};
 }
-function openCallback(){
-  openLayer(`<div class="modal-h"><h2 class="h2">Заказать звонок</h2><button class="icon-btn" data-close aria-label="Закрыть">${X}</button></div>
-  <div class="modal-b"><form class="form" id="cbForm" novalidate style="max-width:460px">
-   <p style="margin:0">Перезвоним в рабочее время и ответим на вопросы о технике, наличии и рассрочке.</p>
-   <div class="field"><label for="cbName">Имя</label><input id="cbName" autocomplete="given-name" required autofocus></div>
-   <div class="field"><label for="cbPhone">Телефон</label><input id="cbPhone" type="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__" required></div>
-   <p class="err" id="cbErr" hidden></p>
-   <button class="btn btn-y" type="submit">Жду звонка</button>
-   <p class="note" style="margin:0">Нажимая кнопку, вы соглашаетесь с <a href="/privacy.html" target="_blank" rel="noopener">политикой обработки персональных данных</a>.</p><input name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-  </form></div>`);
-}
-function done(title,text){
-  openLayer(`<div class="modal-h"><span></span><button class="icon-btn" data-close aria-label="Закрыть">${X}</button></div><div class="modal-b"><div class="ok-box"><div class="big"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="${K}" stroke-width="3" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></div><h2 class="h2" style="font-size:30px">${title}</h2><p style="margin:0;max-width:44ch">${text}</p><button class="btn btn-k" data-close autofocus>Продолжить покупки</button></div></div>`);
-}
-function phoneOk(v){return v.replace(/\D/g,"").length>=10}
-function validate(nameId,phoneId,errId){
-  const n=$("#"+nameId).value.trim(),ph=$("#"+phoneId).value;
-  const e=$("#"+errId);
-  if(!n){e.textContent="Укажите имя, чтобы менеджер знал, как к вам обращаться.";e.hidden=false;$("#"+nameId).focus();return false}
-  if(!phoneOk(ph)){e.textContent="Введите номер телефона полностью, минимум 10 цифр.";e.hidden=false;$("#"+phoneId).focus();return false}
-  e.hidden=true;return n;
+function qrSvg(url){try{const q=qrcode(0,"M");q.addData(url);q.make();return q.createSvgTag({cellSize:4,margin:12,scalable:true})}catch(e){return ""}}
+function openBuy(kind,arg){
+  const {text,path}=waRequest(kind,arg),url=MMwa.url(text);
+  const p=kind==="product"?byId[arg]:null;
+  const head=kind==="product"||kind==="cart"?"Покупка через WhatsApp":"Написать в WhatsApp";
+  openLayer(`<div class="modal-h"><h2 class="h2" style="font-size:26px">${head}</h2><button class="icon-btn" data-close aria-label="Закрыть">${X}</button></div>
+  <div class="modal-b"><div class="buy">
+    <div class="buy-qr"><div class="qr">${qrSvg(location.origin+path)}</div><p class="note" style="margin:0;text-align:center">Наведите камеру телефона на код — откроется WhatsApp с готовым сообщением</p></div>
+    <div class="buy-info">
+      ${p?`<div class="buy-item"><div class="pic">${picHtml(p)}</div><div><div style="font-weight:600;line-height:1.3">${esc(p.name)}</div><div class="price" style="font-size:20px;margin-top:6px">${rub(p.price)}</div></div></div>`:""}
+      <div class="field"><span style="font-size:13px;font-weight:600">Сообщение, которое получит менеджер</span><div class="wa-msg">${esc(text)}</div></div>
+      <a class="btn btn-wa" href="${esc(url)}" target="_blank" rel="noopener" autofocus>${WA_ICON} Открыть WhatsApp</a>
+      <p style="margin:0;font-size:14px">Или позвоните: <a href="tel:+${SHOP.phone}" style="font-weight:700;white-space:nowrap">${SHOP.phoneText}</a></p>
+    </div>
+  </div></div>`);
 }
 
 /* ---------- события ---------- */
@@ -254,16 +236,18 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("button,a,.scrim");
   if(!t)return;
   const d=t.dataset;
-  if(d.adm){admAction(d.adm,d.id);return}
   if(d.close!==undefined&&(t.classList.contains("scrim")||t.tagName==="BUTTON")){closeLayer();if(d.goto)$("#"+d.goto).scrollIntoView({behavior:"smooth"});return}
   if(d.cat!==undefined){$("#mega").hidden=true;$("#megaBtn").setAttribute("aria-expanded","false");showCat(d.cat);return}
+  if(d.buy){openBuy("product",d.buy);return}
+  if(d.buyCart!==undefined){openBuy("cart");return}
+  if(d.buyQuiz!==undefined){openBuy("quiz");return}
+  if(d.soon){openBuy("soon",d.soon);return}
   if(d.add){addToCart(d.add);if($("#layer").firstChild&&!$(".drawer"))closeLayer();return}
   if(d.detail){openDetail(d.detail);return}
   if(d.fav){const id=d.fav;favs.has(id)?favs.delete(id):favs.add(id);saveFavs();toast(favs.has(id)?"Добавлено в избранное":"Убрано из избранного");refreshCards();return}
   if(d.qty){const id=d.qty;cart[id]=Math.max(0,(cart[id]||0)+(+d.d));if(!cart[id])delete cart[id];saveCart();openCart();refreshCards();return}
   if(d.rm){delete cart[d.rm];saveCart();openCart();refreshCards();return}
-  if(d.checkout!==undefined){openCheckout();return}
-  if(d.open==="callback"){openCallback();return}
+  if(d.open==="callback"){openBuy("consult");return}
   if(d.slide){go(+d.slide);return}
   if(d.rail){$("#hits").scrollBy({left:(+d.rail)*$("#hits").clientWidth*.8,behavior:"smooth"});return}
   if(d.qtype){quiz.type=d.qtype;quiz.step=2;renderQuiz();return}
@@ -274,7 +258,7 @@ document.addEventListener("click",e=>{
   if(d.reset!==undefined){filter={cat:null,q:"",favOnly:false,sort:filter.sort,limit:12};$("#q").value="";renderCatalog();return}
   if(d.city){city=d.city;store.set("city",city);renderCity();refreshCards();toast("Город: "+city);return}
   if(d.cityList!==undefined){renderCity("list");return}
-  if(d.act){const a=d.act;if(a==="callback")openCallback();else if(a==="quiz")$("#quiz").scrollIntoView({behavior:"smooth"});else if(a.startsWith("cat:"))showCat(a.slice(4));return}
+  if(d.act){const a=d.act;if(a==="callback")openBuy("consult");else if(a==="quiz")$("#quiz").scrollIntoView({behavior:"smooth"});else if(a.startsWith("cat:"))showCat(a.slice(4));return}
 });
 $("#cityBtn").addEventListener("click",e=>{e.stopPropagation();$("#cityPop").hidden?renderCity(city?"list":"confirm"):renderCity()});
 $("#megaBtn").addEventListener("click",()=>{const m=$("#mega");m.hidden=!m.hidden;$("#megaBtn").setAttribute("aria-expanded",String(!m.hidden))});
@@ -288,33 +272,9 @@ $("#searchForm").addEventListener("submit",e=>{e.preventDefault();filter={...fil
 $("#sort").addEventListener("change",e=>{filter.sort=e.target.value;renderCatalog()});
 $("#prevSlide").addEventListener("click",()=>go(slideI-1));
 $("#nextSlide").addEventListener("click",()=>go(slideI+1));
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){if($("#layer").firstChild){closeLayer();return}if(!$("#admin").hidden){adm.view==="edit"?admAction("list"):closeAdmin();return}$("#mega").hidden=true;if(city)renderCity();$("#chat").hidden=true}});
-document.addEventListener("submit",e=>{
-  const f=e.target;
-  if(f.id==="orderForm"){e.preventDefault();(async()=>{const n=validate("oName","oPhone","oErr");if(!n)return;
-    const num=await sendOrder({kind:"order",name:n,phone:$("#oPhone").value,delivery:f.dlv.value,payment:f.pay.value,comment:$("#oCom").value,items:Object.entries(cart).map(([id,qty])=>({id,qty})),website:hp(f)},$("#oErr"),f.querySelector("[type=submit]"));
-    if(!num)return;cart={};saveCart();refreshCards();done("Заказ "+num+" оформлен",`${esc(n)}, спасибо! Менеджер позвонит, чтобы подтвердить наличие, доставку и оплату.`)})()}
-  else if(f.id==="cbForm"){e.preventDefault();(async()=>{const n=validate("cbName","cbPhone","cbErr");if(!n)return;
-    const num=await sendOrder({kind:"callback",name:n,phone:$("#cbPhone").value,website:hp(f)},$("#cbErr"),f.querySelector("[type=submit]"));
-    if(num)done("Заявка принята",`${esc(n)}, перезвоним в рабочее время.`)})()}
-  else if(f.id==="quizForm"){e.preventDefault();(async()=>{const n=validate("qName","qPhone","qErr");if(!n)return;
-    const c=catById[quiz.type],b=BUDGETS[quiz.budget];
-    const num=await sendOrder({kind:"quiz",name:n,phone:$("#qPhone").value,comment:`Подбор: ${c?c.quiz:"—"}, бюджет ${b?b[0]:"—"}`,website:hp(f)},$("#qErr"),f.querySelector("[type=submit]"));
-    if(num)done("Заявка принята",`${esc(n)}, менеджер позвонит и расскажет о моделях из подборки.`)})()}
-});
-/* чат */
-$("#chatFab").addEventListener("click",()=>{const c=$("#chat");c.hidden=!c.hidden;$("#chatFab").setAttribute("aria-expanded",String(!c.hidden));if(!c.hidden)$("#chatIn").focus()});
-$("#chatClose").addEventListener("click",()=>{$("#chat").hidden=true;$("#chatFab").setAttribute("aria-expanded","false")});
-$("#chatForm").addEventListener("submit",async e=>{
-  e.preventDefault();const f=e.target,err=$("#chatErr"),v=$("#chatIn").value.trim(),ph=$("#chatPhone").value;
-  if(!v){err.textContent="Напишите вопрос.";err.hidden=false;$("#chatIn").focus();return}
-  if(!phoneOk(ph)){err.textContent="Оставьте телефон, чтобы мы могли ответить: минимум 10 цифр.";err.hidden=false;$("#chatPhone").focus();return}
-  const num=await sendOrder({kind:"question",phone:ph,comment:v,website:hp(f)},err,f.querySelector("[type=submit]"));
-  if(!num)return;
-  const b=$("#chatB");b.insertAdjacentHTML("beforeend",`<div class="msg me">${esc(v)}</div><div class="msg them">Спасибо! Менеджер перезвонит или напишет вам в рабочее время.</div>`);
-  $("#chatIn").value="";f.querySelector("[type=submit]").disabled=false;b.scrollTop=b.scrollHeight});
-
-/* ---------- загрузка каталога и отправка заявок ---------- */
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if($("#layer").firstChild){closeLayer();return}$("#mega").hidden=true;if(city)renderCity()}});
+/* ---------- загрузка каталога ---------- */
+$("#chatFab").addEventListener("click",()=>openBuy("consult"));
 async function loadProducts(){
   try{
     const r=await fetch("/api/products",{headers:{Accept:"application/json"}});
@@ -325,20 +285,6 @@ async function loadProducts(){
   }catch(e){dbState="off"}
   refreshCards();renderCounts();
 }
-async function sendOrder(payload,errEl,btn){
-  errEl.hidden=true;if(btn)btn.disabled=true;
-  try{
-    const r=await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-    const data=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error(data.error||"Не удалось отправить заявку. Попробуйте ещё раз или позвоните нам.");
-    return data.number;
-  }catch(e){
-    errEl.textContent=e.message&&!/fetch|network/i.test(e.message)?e.message:"Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.";
-    errEl.hidden=false;if(btn)btn.disabled=false;return null;
-  }
-}
-const hp=f=>{const h=f.querySelector("[name=website]");return h?h.value:""};
-
 /* старт */
 renderNav();renderCity(city?null:"confirm");renderSlider();restart();renderHits();renderQuiz();renderPop();renderCatalog();renderPerks();renderCounts();
 loadProducts();

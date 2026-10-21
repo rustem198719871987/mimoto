@@ -5,7 +5,6 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { createApp } = require("../src/app");
-const { formatOrder } = require("../src/telegram");
 
 const PASSWORD = "test-password-123";
 let server, base, dataDir, cookie;
@@ -90,40 +89,6 @@ test("создание, проверка и быстрая правка това
   assert.equal((await req("PATCH", `/api/admin/products/${pid}`, { old: 100 })).status, 400, "старая цена ниже текущей");
 });
 
-test("заказ: цена берётся из базы, данные проверяются", async () => {
-  const bad = await json(await req("POST", "/api/orders", { kind: "order", name: "Иван", phone: "123", items: [{ id: pid, qty: 1 }] }, { auth: false }));
-  assert.equal(bad.status, 400);
-  assert.match(bad.body.error, /телефон/i);
-  assert.equal((await req("POST", "/api/orders", { kind: "order", name: "Иван", phone: "+7 900 000-00-00", items: [{ id: hiddenId, qty: 1 }] }, { auth: false })).status, 400);
-
-  const o = await json(await req("POST", "/api/orders",
-    { kind: "order", name: "Иван", phone: "+7 900 000-00-00", delivery: "pickup", payment: "credit", items: [{ id: pid, qty: 2, price: 1 }] }, { auth: false }));
-  assert.equal(o.status, 201);
-  assert.match(o.body.number, /^MM-\d{5}$/);
-
-  const cb = await req("POST", "/api/orders", { kind: "callback", name: "Пётр", phone: "89000000000" }, { auth: false });
-  assert.equal(cb.status, 201);
-
-  const list = (await json(await req("GET", "/api/admin/orders"))).body;
-  assert.equal(list.newCount, 2);
-  const order = list.orders.find((x) => x.kind === "order");
-  assert.equal(order.total, 189900 * 2);
-  assert.equal(order.items[0].name, PRODUCT.name);
-
-  const upd = await json(await req("PATCH", `/api/admin/orders/${order.id}`, { status: "work", note: "Перезвонить в субботу" }));
-  assert.equal(upd.body.status, "work");
-  assert.equal(upd.body.note, "Перезвонить в субботу");
-  assert.equal((await json(await req("GET", "/api/admin/orders?status=work"))).body.orders.length, 1);
-});
-
-test("товар «нет в наличии» нельзя заказать", async () => {
-  await req("PATCH", `/api/admin/products/${pid}`, { stock: "out" });
-  const r = await json(await req("POST", "/api/orders", { kind: "order", name: "Иван", phone: "+79000000000", items: [{ id: pid, qty: 1 }] }, { auth: false }));
-  assert.equal(r.status, 400);
-  assert.match(r.body.error, /закончился/);
-  await req("PATCH", `/api/admin/products/${pid}`, { stock: "in" });
-});
-
 test("фото: принимаются только картинки, удаляются вместе с товаром", async () => {
   const txt = new FormData();
   txt.append("photo", new Blob(["<script>alert(1)</script>"], { type: "image/png" }), "x.png");
@@ -166,11 +131,32 @@ test("выход завершает сессию", async () => {
   assert.match(out.headers.get("set-cookie"), /Max-Age=0/);
 });
 
-test("текст уведомления в Telegram", () => {
-  const text = formatOrder({ kind: "order", number: "MM-00007", name: "Иван", phone: "+79000000000",
-    items: [{ name: "X300", price: 100000, qty: 2 }], total: 200000, delivery: "pickup", payment: "credit", comment: "" }, "https://mimoto.ru");
-  assert.match(text, /Заказ MM-00007/);
-  assert.match(text, /Итого: 200\s000 ₽/);
-  assert.match(text, /Самовывоз, Арск/);
-  assert.match(text, /https:\/\/mimoto\.ru\/admin/);
+test("сайт не принимает данные покупателей: API заявок отсутствует", async () => {
+  const r = await req("POST", "/api/orders", { kind: "order", name: "Иван", phone: "+79000000000" }, { auth: false });
+  assert.equal(r.status, 404);
+});
+
+test("наличие «нет в наличии» сохраняется и видно на витрине", async () => {
+  await req("PATCH", `/api/admin/products/${pid}`, { stock: "out" });
+  const pub = (await json(await fetch(base + "/api/products"))).body;
+  assert.equal(pub.find((p) => p.id === pid).stock, "out");
+  await req("PATCH", `/api/admin/products/${pid}`, { stock: "in" });
+});
+
+test("короткие ссылки из QR-кодов ведут в WhatsApp с тем же текстом, что и кнопка", async () => {
+  const wa = require("../public/js/wa.js");
+  const go = async (path) => {
+    const r = await fetch(base + path, { redirect: "manual" });
+    assert.equal(r.status, 302);
+    const loc = r.headers.get("location");
+    assert.ok(loc.startsWith("https://wa.me/79172270808?text="), loc);
+    return decodeURIComponent(loc.split("text=")[1]);
+  };
+  const p = (await json(await req("GET", "/api/admin/products"))).body.find((x) => x.id === pid);
+  assert.equal(await go(wa.shortPath("product", pid)), wa.text("product", p));
+  assert.equal(await go(wa.shortPath("cart", [{ id: pid, qty: 2 }])), wa.text("cart", { items: [{ name: p.name, price: p.price, qty: 2 }] }));
+  assert.match(await go(wa.shortPath("quiz", { cat: "pit", budget: 1 })), /Питбайк, бюджет 100 000 – 200 000 ₽/);
+  assert.equal(await go(wa.shortPath("product", hiddenId)), wa.text("consult"), "скрытый товар не раскрывается");
+  assert.equal(await go("/w?p=../../etc"), wa.text("consult"));
+  assert.equal(await go("/w"), wa.text("consult"));
 });

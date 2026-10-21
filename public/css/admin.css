@@ -6,24 +6,5 @@
 .adm-head .tabs{display:flex;gap:4px;flex-wrap:wrap}
 .adm-head .tab{background:none;border:0;color:var(--white);font-family:var(--display);font-style:italic;font-weight:900;text-transform:uppercase;font-size:17px;padding:10px 12px;box-shadow:inset 0 -4px 0 transparent}
 .adm-head .tab[aria-current="page"]{box-shadow:inset 0 -4px 0 var(--yellow)}
-.adm-head .tab .cnt{display:inline-block;min-width:22px;padding:0 6px;margin-left:6px;background:var(--yellow);color:var(--black);font-style:normal;font-size:13px;border-radius:11px}
 .adm-head a.lnk{color:var(--white);font-size:14px}
 .adm-head .logout{background:none;border:0;color:var(--muted-d);text-decoration:underline;font-size:14px;padding:10px 4px}
-.ord-list{display:grid;gap:14px;padding-bottom:40px}
-.ord{border:1px solid var(--line);border-left:6px solid var(--line);padding:16px 18px;display:grid;gap:10px;background:var(--white)}
-.ord.st-new{border-left-color:var(--yellow)}
-.ord.st-work{border-left-color:#2F6FD6}
-.ord.st-done{border-left-color:var(--ok)}
-.ord.st-cancelled{border-left-color:#9A988F;background:#F7F6F2}
-.ord-top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
-.ord-top b{font-size:18px}
-.ord-top .when{color:var(--muted);font-size:13px}
-.ord-top select{margin-left:auto;height:40px;border:2px solid var(--black);padding:0 8px;background:var(--white);font-weight:600}
-.ord-who{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:15px}
-.ord-who a{font-weight:700}
-.ord table{border-collapse:collapse;width:100%;font-size:14px}
-.ord td{padding:4px 0;border-bottom:1px solid var(--line);vertical-align:top}
-.ord td.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;padding-left:12px}
-.ord .meta{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:14px;color:var(--muted)}
-.ord .cm{background:var(--paper);padding:8px 12px;font-size:14px;white-space:pre-line}
-.ord textarea{width:100%;min-height:44px;height:44px;border:1px solid #BDBBB2;padding:8px 10px;font-size:14px;resize:vertical}

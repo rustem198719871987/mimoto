@@ -8,13 +8,11 @@ set -euo pipefail
 INSTALL_DIR="${MIMOTO_DIR:-/opt/mimoto}"
 TEST_MODE="${MIMOTO_TEST:-0}"   # 1 = только распаковка и настройки, без apt/Docker (для проверки)
 
-DOMAIN="" ADMIN_PASSWORD="" TG_TOKEN="" TG_CHAT="" SEED="" ASSUME_YES=0 AUTODEPLOY=""
+DOMAIN="" ADMIN_PASSWORD="" SEED="" ASSUME_YES=0 AUTODEPLOY=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --domain) DOMAIN="$2"; shift 2 ;;
     --password) ADMIN_PASSWORD="$2"; shift 2 ;;
-    --telegram-token) TG_TOKEN="$2"; shift 2 ;;
-    --telegram-chat) TG_CHAT="$2"; shift 2 ;;
     --seed) SEED=yes; shift ;;
     --no-seed) SEED=no; shift ;;
     --autodeploy) AUTODEPLOY=yes; shift ;;
@@ -62,10 +60,6 @@ else
     [ -n "$ADMIN_PASSWORD" ] || ADMIN_PASSWORD="$(rand 'A-HJ-NP-Za-km-z2-9' 16)"
   fi
   [ ${#ADMIN_PASSWORD} -ge 10 ] || die "Пароль админки должен быть не короче 10 символов."
-  if [ -z "$TG_TOKEN" ] && [ "$ASSUME_YES" != 1 ]; then
-    ask "Токен Telegram-бота для уведомлений (Enter — пропустить)" TG_TOKEN ""
-    [ -z "$TG_TOKEN" ] || ask "ID чата Telegram" TG_CHAT ""
-  fi
   [ -n "$SEED" ] || { ask "Добавить 20 примеров товаров? (y/n)" SEED "n"; }
   [ -n "$AUTODEPLOY" ] || { ask "Включить автообновление сайта из GitHub? (y/n)" AUTODEPLOY "y"; }
 fi
@@ -119,11 +113,8 @@ if [ "$UPDATE" != 1 ]; then
   umask 077
   cat >"$INSTALL_DIR/.env" <<EOF
 DOMAIN=$DOMAIN
-SITE_URL=https://$DOMAIN
 ADMIN_PASSWORD=$ADMIN_PASSWORD
 SESSION_SECRET=$(rand 'a-f0-9' 64)
-TELEGRAM_BOT_TOKEN=$TG_TOKEN
-TELEGRAM_CHAT_ID=$TG_CHAT
 EOF
   umask 022
   ok "Настройки сохранены в $INSTALL_DIR/.env"

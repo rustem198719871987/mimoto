@@ -56,37 +56,4 @@ function productPatch(input, current) {
   return product(next);
 }
 
-const KINDS = { order: "Заказ", callback: "Обратный звонок", quiz: "Подбор техники", question: "Вопрос из чата" };
-const DELIVERY = { pickup: "Самовывоз, Арск", city: "Доставка по городу", russia: "Транспортная компания" };
-const PAYMENT = { receipt: "При получении", credit: "Рассрочка 0%", invoice: "Счёт для юрлица" };
-const ORDER_STATUS = { new: "Новый", work: "В работе", done: "Выполнен", cancelled: "Отменён" };
-
-// Заявка с сайта. Цены товаров берутся из базы, а не из браузера.
-function order(input) {
-  const x = input && typeof input === "object" ? input : {};
-  if (!KINDS[x.kind]) return { error: "Неизвестный тип заявки." };
-  const phone = str(x.phone, 40);
-  if (phone.replace(/\D/g, "").length < 10) return { error: "Введите номер телефона полностью, минимум 10 цифр." };
-  const name = str(x.name, 100);
-  if (x.kind !== "question" && !name) return { error: "Укажите имя." };
-  const comment = str(x.comment, 2000);
-  if (x.kind === "question" && !comment) return { error: "Напишите вопрос." };
-  const items = (Array.isArray(x.items) ? x.items : [])
-    .filter((i) => i && typeof i.id === "string" && ID_RE.test(i.id))
-    .slice(0, 50)
-    .map((i) => ({ id: i.id, qty: Math.min(99, Math.max(1, int(i.qty) || 1)) }));
-  if (x.kind === "order" && !items.length) return { error: "Корзина пуста." };
-  return {
-    value: {
-      kind: x.kind,
-      name,
-      phone,
-      comment,
-      items,
-      delivery: x.kind === "order" ? (DELIVERY[x.delivery] ? x.delivery : "pickup") : null,
-      payment: x.kind === "order" ? (PAYMENT[x.payment] ? x.payment : "receipt") : null,
-    },
-  };
-}
-
-module.exports = { product, productPatch, order, CAT_IDS, STOCK, KINDS, DELIVERY, PAYMENT, ORDER_STATUS, ID_RE, PHOTO_RE };
+module.exports = { product, productPatch, CAT_IDS, STOCK, ID_RE, PHOTO_RE };

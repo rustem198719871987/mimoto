@@ -1,16 +1,10 @@
-/* Админка MiMoto: заказы и каталог. Все данные — через /api/admin/* */
+/* Админка MiMoto: каталог товаров. Все данные — через /api/admin/* */
 (function(){
 "use strict";
 
-const KINDS={order:"Заказ",callback:"Обратный звонок",quiz:"Подбор техники",question:"Вопрос из чата"};
-const DELIVERY={pickup:"Самовывоз, Арск",city:"Доставка по городу",russia:"Транспортная компания"};
-const PAYMENT={receipt:"При получении",credit:"Рассрочка 0%",invoice:"Счёт для юрлица"};
-const STATUS={new:"Новый",work:"В работе",done:"Выполнен",cancelled:"Отменён"};
 const XI=`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 
-let P=[],byId={},orders=[],newCount=0,loaded=false;
-let tab=location.hash==="#products"?"products":"orders";
-let ordFilter="";
+let P=[],byId={},loaded=false;
 let adm={view:"list",q:"",cat:"",edit:null,photo:undefined,confirm:null};
 
 function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
@@ -50,10 +44,7 @@ async function login(){
 function renderShell(){
   $("#app").innerHTML=`<div class="adm-head"><div class="wrap">
     <h2 class="disp" tabindex="-1" style="font-size:22px"><span style="color:var(--yellow)">Mi</span>MOTO</h2>
-    <nav class="tabs" aria-label="Разделы">
-      <button class="tab" data-tab="orders" aria-current="${tab==="orders"?"page":"false"}">Заказы<span class="cnt" id="newCnt" ${newCount?"":"hidden"}>${newCount}</span></button>
-      <button class="tab" data-tab="products" aria-current="${tab==="products"?"page":"false"}">Товары</button>
-    </nav>
+    <nav class="tabs" aria-label="Разделы"><span class="tab" aria-current="page">Товары</span></nav>
     <span style="flex:1"></span>
     <a class="lnk" href="/" target="_blank" rel="noopener">Открыть сайт</a>
     <button class="logout" data-act="logout">Выйти</button>
@@ -61,41 +52,7 @@ function renderShell(){
   renderView();
 }
 function renderView(){
-  document.title=(newCount?`(${newCount}) `:"")+"MiMoto — админка";
-  const c=$("#newCnt");if(c){c.textContent=newCount;c.hidden=!newCount}
-  if(tab==="orders")renderOrders();else if(adm.view==="edit")$("#view").innerHTML=formHtml();else renderProductsView();
-}
-
-/* ---------- заказы ---------- */
-async function loadOrders(){
-  const d=await api("GET","/api/admin/orders"+(ordFilter?"?status="+ordFilter:""));
-  orders=d.orders;newCount=d.newCount;
-}
-function renderOrders(){
-  $("#view").innerHTML=`<div class="wrap">
-    <div class="adm-tools"><div class="chips">${[["","Все"],...Object.entries(STATUS)].map(([k,v])=>`<button class="chip" data-ord-filter="${k}" aria-pressed="${ordFilter===k}">${v}${k==="new"&&newCount?` · ${newCount}`:""}</button>`).join("")}</div>
-    <button class="mini" data-act="reload-orders" style="margin-left:auto">Обновить</button></div>
-    <div class="ord-list" id="ordList"></div></div>`;
-  renderOrderList();
-}
-function renderOrderList(){
-  const box=$("#ordList");if(!box)return;
-  if(!orders.length){box.innerHTML=`<div class="adm-msg">${ordFilter?"Нет заявок с таким статусом.":"Заявок пока нет. Они появятся здесь, как только покупатели оформят заказ или попросят перезвонить."}</div>`;return}
-  box.innerHTML=orders.map(o=>`<article class="ord st-${o.status}">
-    <div class="ord-top"><b>${esc(o.number)}</b><span class="chip-s k">${KINDS[o.kind]||esc(o.kind)}</span><span class="when">${new Date(o.createdAt).toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"})}</span>
-      <label class="sr" for="st-${o.id}">Статус ${esc(o.number)}</label>
-      <select id="st-${o.id}" data-ord-status="${o.id}">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${o.status===k?"selected":""}>${v}</option>`).join("")}</select></div>
-    <div class="ord-who"><span>${esc(o.name||"Без имени")}</span><a href="tel:${esc(o.phone.replace(/[^\d+]/g,""))}">${esc(o.phone)}</a></div>
-    ${o.items.length?`<table><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)} × ${i.qty}</td><td class="r">${rub(i.price*i.qty)}</td></tr>`).join("")}<tr><td><b>Итого</b></td><td class="r"><b>${rub(o.total)}</b></td></tr></tbody></table>`:""}
-    ${o.delivery||o.payment?`<div class="meta">${o.delivery?`<span>Получение: ${DELIVERY[o.delivery]||esc(o.delivery)}</span>`:""}${o.payment?`<span>Оплата: ${PAYMENT[o.payment]||esc(o.payment)}</span>`:""}</div>`:""}
-    ${o.comment?`<div class="cm">${esc(o.comment)}</div>`:""}
-    <div><label class="sr" for="nt-${o.id}">Заметка к ${esc(o.number)}</label><textarea id="nt-${o.id}" data-ord-note="${o.id}" placeholder="Заметка менеджера: перезвонил, договорились на субботу…">${esc(o.note)}</textarea></div>
-  </article>`).join("");
-}
-async function patchOrder(id,body){
-  try{const o=await api("PATCH","/api/admin/orders/"+id,body);const i=orders.findIndex(x=>x.id===o.id);if(i>=0)orders[i]=o;
-    if("status" in body){await loadOrders();renderView()}else toast("Заметка сохранена")}
-  catch(e){fail(e)}
+  if(adm.view==="edit")$("#view").innerHTML=formHtml();else renderProductsView();
 }
 
 /* ---------- товары: список ---------- */
@@ -232,13 +189,9 @@ document.addEventListener("submit",e=>{
 });
 document.addEventListener("click",async e=>{
   const t=e.target.closest("button");if(!t)return;const d=t.dataset;
-  if(d.tab){tab=d.tab;history.replaceState(null,"",d.tab==="products"?"#products":"#orders");adm.view="list";
-    try{tab==="orders"?await loadOrders():await loadProducts()}catch(er){return fail(er)}renderShell();return}
-  if(d.ordFilter!==undefined){ordFilter=d.ordFilter;try{await loadOrders()}catch(er){return fail(er)}renderOrders();return}
   const a=d.act;if(!a)return;
   try{
     if(a==="logout"){await api("POST","/api/admin/logout");renderLogin();return}
-    if(a==="reload-orders"){await loadOrders();renderView();toast("Обновлено");return}
     if(a==="new"||a==="edit"){adm.edit=a==="new"?blank():{...byId[d.id],specs:byId[d.id].specs.slice()};adm.photo=undefined;adm.view="edit";renderView();window.scrollTo(0,0);$("#fName").focus();return}
     if(a==="list"){toList();return}
     if(a==="del"){adm.confirm=d.id;renderRows();return}
@@ -253,26 +206,15 @@ document.addEventListener("change",e=>{
   else if(el.id==="admImport"){const f=el.files[0];el.value="";if(f)importFile(f)}
   else if(el.id==="fPhoto")uploadPhoto(el.files[0]);
   else if(el.id==="admCat"){adm.cat=el.value;renderRows()}
-  else if(el.dataset.ordStatus)patchOrder(+el.dataset.ordStatus,{status:el.value});
-  else if(el.dataset.ordNote)patchOrder(+el.dataset.ordNote,{note:el.value});
 });
 document.addEventListener("input",e=>{if(e.target.id==="admQ"){adm.q=e.target.value;renderRows()}});
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter"&&e.target.matches("#admRows input[type=number]")){e.preventDefault();e.target.blur()}
-  if(e.key==="Escape"&&tab==="products"&&adm.view==="edit")toList();
+  if(e.key==="Escape"&&adm.view==="edit")toList();
 });
 
-// Новые заявки подтягиваются раз в минуту, пока вкладка открыта.
-setInterval(async()=>{
-  if(document.hidden||!$("#view"))return;
-  const busy=document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#ordList,#admForm");
-  try{const before=newCount;await loadOrders();
-    if(tab==="orders"&&!busy)renderView();else{const c=$("#newCnt");if(c){c.textContent=newCount;c.hidden=!newCount}document.title=(newCount?`(${newCount}) `:"")+"MiMoto — админка"}
-    if(newCount>before)toast("Новая заявка!")}catch(e){}
-},60000);
-
 async function start(){
-  try{await Promise.all([loadOrders(),loadProducts()])}catch(e){if(!(e instanceof AuthError))$("#app").innerHTML=`<p class="adm-msg" style="margin:40px auto;max-width:480px">${esc(e.message)}</p>`;return}
+  try{await loadProducts()}catch(e){if(!(e instanceof AuthError))$("#app").innerHTML=`<p class="adm-msg" style="margin:40px auto;max-width:480px">${esc(e.message)}</p>`;return}
   renderShell();
 }
 (async()=>{
