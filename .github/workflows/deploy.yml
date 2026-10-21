@@ -1,6 +1,6 @@
-# Каждое изменение в ветке main: тесты -> сборка установщика -> обновление сайта на сервере.
-# Нужны секреты репозитория (Settings -> Secrets and variables -> Actions):
-#   SSH_HOST, SSH_KNOWN_HOSTS, SSH_PRIVATE_KEY — их выдаёт установщик (файл /root/mimoto-github-secrets.txt).
+# Каждое изменение в ветке main: тесты -> сборка установщика -> публикация в релиз «installer».
+# Сервер сам раз в 5 минут проверяет этот релиз и обновляет сайт (installer/autoupdate.sh).
+# Если тесты не прошли, установщик не публикуется и сайт не меняется.
 name: Тесты и выкладка
 
 on:
@@ -44,20 +44,3 @@ jobs:
           gh release view installer >/dev/null 2>&1 || gh release create installer \
             --title "Установщик MiMoto" --notes "Свежая версия установщика сайта. Обновляется автоматически при каждом изменении."
           gh release upload installer dist/mimoto-install.sh --clobber
-
-      - name: Выкладка на сервер
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          if [ -z "$SSH_HOST" ] || [ -z "$SSH_PRIVATE_KEY" ] || [ -z "$SSH_KNOWN_HOSTS" ]; then
-            echo "::warning::Секреты сервера не заданы — тесты прошли, но выкладка пропущена."
-            exit 0
-          fi
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/mimoto_deploy
-          chmod 600 ~/.ssh/mimoto_deploy ~/.ssh/known_hosts
-          ssh -i ~/.ssh/mimoto_deploy -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
-            "root@$SSH_HOST" < dist/mimoto-install.sh

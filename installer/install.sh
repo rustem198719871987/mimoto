@@ -7,6 +7,9 @@
 set -euo pipefail
 
 INSTALL_DIR="${MIMOTO_DIR:-/opt/mimoto}"
+# Репозиторий GitHub, откуда брать обновления; подставляется при сборке (installer/build.sh)
+MIMOTO_REPO="${MIMOTO_REPO:-__MIMOTO_REPO__}"
+case "$MIMOTO_REPO" in *__*) MIMOTO_REPO="" ;; esac
 TEST_MODE="${MIMOTO_TEST:-0}"   # 1 = только распаковка и настройки, без apt/Docker (для проверки)
 
 DOMAIN="" ADMIN_PASSWORD="" SEED="" ASSUME_YES=0 AUTODEPLOY=""
@@ -59,6 +62,10 @@ site_address() { if [ -n "$DOMAIN" ]; then printf '%s, www.%s' "$DOMAIN" "$DOMAI
 # ---------- 1. Настройки ----------
 if [ "$UPDATE" = 1 ]; then
   ok "Найдена установка в $INSTALL_DIR — обновляю сайт, настройки и данные сохраняются."
+  # автообновление остаётся включённым, если было включено (в том числе старым способом через SSH-ключ)
+  if [ -z "$AUTODEPLOY" ] && { [ -f /etc/cron.d/mimoto-autoupdate ] || grep -qs 'mimoto-github-deploy' /root/.ssh/authorized_keys; }; then
+    AUTODEPLOY=yes
+  fi
   if [ -n "$DOMAIN" ]; then
     check_domain
     sed -i -E "/^(DOMAIN|SITE_ADDRESS)=/d" "$INSTALL_DIR/.env"
@@ -176,28 +183,25 @@ EOF
 ok "Резервные копии: каждый день в 03:15 в $INSTALL_DIR/backups"
 
 # ---------- 7. Автообновление из GitHub ----------
-# Приёмник ставим через временный файл и mv: так не задеваем копию, которая сейчас, возможно, выполняется.
-install -m 755 "$INSTALL_DIR/installer/deploy-receive.sh" /usr/local/sbin/.mimoto-deploy.new
-mv -f /usr/local/sbin/.mimoto-deploy.new /usr/local/sbin/mimoto-deploy
-if [ "$AUTODEPLOY" = yes ]; then
-  KEY=/root/.ssh/mimoto_deploy AK=/root/.ssh/authorized_keys
-  install -m 700 -d /root/.ssh; touch "$AK"; chmod 600 "$AK"
-  [ -f "$KEY" ] || ssh-keygen -q -t ed25519 -N "" -C mimoto-github-deploy -f "$KEY"
-  if ! grep -q 'mimoto-github-deploy' "$AK"; then
-    printf 'command="/usr/local/sbin/mimoto-deploy",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s\n' "$(cat "$KEY.pub")" >>"$AK"
-  fi
-  HOST_IP="${MY_IP:-$(hostname -I | awk '{print $1}')}"
-  {
-    echo "Секреты для GitHub: репозиторий -> Settings -> Secrets and variables -> Actions -> New repository secret"
-    echo; echo "=== SSH_HOST ==="; echo "$HOST_IP"
-    echo; echo "=== SSH_KNOWN_HOSTS ==="
-    for k in /etc/ssh/ssh_host_ed25519_key.pub /etc/ssh/ssh_host_ecdsa_key.pub /etc/ssh/ssh_host_rsa_key.pub; do
-      [ -f "$k" ] && echo "$HOST_IP $(cut -d' ' -f1,2 "$k")"
-    done
-    echo; echo "=== SSH_PRIVATE_KEY ==="; cat "$KEY"
-  } >/root/mimoto-github-secrets.txt
-  chmod 600 /root/mimoto-github-secrets.txt
-  ok "Автообновление включено. Ключ может только обновлять сайт и ничего другого на сервере не запустит."
+# Сервер сам раз в 5 минут проверяет релиз «installer» в GitHub и ставит новую версию.
+# Ключи и секреты не нужны: репозиторий публичный, установщик публикуется только после тестов.
+if [ "$AUTODEPLOY" = yes ] && [ -n "$MIMOTO_REPO" ]; then
+  echo "$MIMOTO_REPO" >/etc/mimoto-repo
+  # через временный файл и mv: не задеваем копию, которая сейчас, возможно, выполняется
+  install -m 755 "$INSTALL_DIR/installer/autoupdate.sh" /usr/local/sbin/.mimoto-autoupdate.new
+  mv -f /usr/local/sbin/.mimoto-autoupdate.new /usr/local/sbin/mimoto-autoupdate
+  cat >/etc/cron.d/mimoto-autoupdate <<EOF
+# Проверка новой версии сайта MiMoto на GitHub каждые 5 минут
+*/5 * * * * root /usr/local/sbin/mimoto-autoupdate >>/var/log/mimoto-update.log 2>&1
+EOF
+  ok "Автообновление включено: сервер сам проверяет GitHub ($MIMOTO_REPO) каждые 5 минут"
+elif [ "$AUTODEPLOY" = yes ]; then
+  warn "Не знаю адрес репозитория GitHub — автообновление не включено. Скачайте установщик из GitHub."
+fi
+# Старый способ выкладки по SSH-ключу больше не используется — убираем ключ, если он был
+if [ -f /root/.ssh/authorized_keys ] && grep -q 'mimoto-github-deploy' /root/.ssh/authorized_keys; then
+  sed -i '/mimoto-github-deploy/d' /root/.ssh/authorized_keys
+  rm -f /root/.ssh/mimoto_deploy /root/.ssh/mimoto_deploy.pub /root/mimoto-github-secrets.txt /usr/local/sbin/mimoto-deploy
 fi
 
 # ---------- Итог ----------
@@ -210,9 +214,9 @@ printf '\n%s Готово! %s\n' "$G" "$N"
 printf '  Сайт:     %s\n' "$SITE"
 printf '  Админка:  %s/admin\n' "$SITE"
 [ "$UPDATE" = 1 ] || printf '  Пароль:   %s   (сохранён в /root/mimoto-admin.txt)\n' "$ADMIN_PASSWORD"
-if [ "$AUTODEPLOY" = yes ]; then
-  printf '\n  Автообновление: покажите секреты командой  cat /root/mimoto-github-secrets.txt\n'
-  printf '  и вставьте три значения в GitHub (инструкция в начале файла).\n'
+if [ -f /etc/cron.d/mimoto-autoupdate ]; then
+  printf '\n  Автообновление включено: изменения из GitHub появятся на сайте в течение ~10 минут.\n'
+  printf '  Журнал обновлений: tail /var/log/mimoto-update.log\n'
 fi
 if [ -n "$DOMAIN" ]; then
   printf '\n  Если сайт не открывается по https сразу — подождите 1–2 минуты, пока выпускается сертификат.\n\n'
