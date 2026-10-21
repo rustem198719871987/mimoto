@@ -1,0 +1,32 @@
+# Магазин + Caddy (автоматический HTTPS-сертификат для вашего домена).
+# Запуск: docker compose up -d --build
+services:
+  shop:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /app/data
+    volumes:
+      - shop_data:/app/data   # база shop.db и фото товаров
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Укажите DOMAIN в файле .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - shop
+
+volumes:
+  shop_data:
+  caddy_data:
+  caddy_config:

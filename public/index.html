@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MiMoto — мототехника в Арске</title>
+<meta name="description" content="Эндуро, питбайки, квадроциклы, снегоходы и мотобуксировщики MiMoto. Рассрочка, доставка по России, самовывоз в Арске.">
+<link rel="icon" href="/img/logo-mark.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,500;0,700;0,800;1,800;1,900&family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+<div class="top">
+  <div class="wrap">
+    <div style="position:relative">
+      <button class="city" id="cityBtn" aria-haspopup="dialog" aria-expanded="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--yellow)" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+        <span id="cityName">Выберите ваш город</span>
+      </button>
+      <div class="city-pop" id="cityPop" role="dialog" aria-label="Выбор города" hidden></div>
+    </div>
+    <nav class="top-links" aria-label="Информация">
+      <a href="#about">О компании</a><a href="#about">Отзывы</a><a href="#about">Сотрудничество</a><a href="#about">Оплата</a><a href="#about">Доставка</a><a href="#about">Сервисный центр</a><a href="#about">Гарантия</a><a href="#about">Новости</a><a href="#about">Наши партнёры</a><a href="#about">Контакты</a>
+    </nav>
+    <span class="top-mail">zabota@mimoto.ru</span>
+  </div>
+</div>
+
+<header class="head">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="MiMoto — на главную"><img src="/img/logo-mark.jpg" alt="MiMoto" width="600" height="372"><span class="slog">Раскрой мощь машины</span></a>
+    <div class="catalog-btn">
+      <button class="btn btn-y" id="megaBtn" aria-expanded="false" aria-controls="mega">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        <span class="t">Каталог техники</span>
+      </button>
+      <div class="mega" id="mega" hidden></div>
+    </div>
+    <form class="search" id="searchForm" role="search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <label for="q" class="sr">Поиск по каталогу</label>
+      <input id="q" type="search" placeholder="Я ищу MiMoto X300…" autocomplete="off">
+      <button type="submit">Найти</button>
+    </form>
+    <div class="phone">
+      <b>+7 (800) 000-00-00</b>
+      <button type="button" data-open="callback">Заказать звонок</button>
+    </div>
+    <div class="head-ico">
+      <button type="button" id="favBtn" aria-label="Избранное">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+        <span class="badge" id="favCount">0</span><span class="t">Избранное</span>
+      </button>
+      <button type="button" id="cartBtn" aria-label="Корзина">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h2l2.4 11h11L21 7H6.2"/><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/></svg>
+        <span class="badge" id="cartCount">0</span><span class="t">Корзина</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<nav class="cats" aria-label="Категории">
+  <div class="wrap" id="catNav"></div>
+</nav>
+
+<main id="top">
+  <section class="hero" aria-label="Акции">
+    <div class="wrap">
+      <div class="slider" id="slider">
+        <div class="arrows">
+          <button type="button" id="prevSlide" aria-label="Предыдущий слайд"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button type="button" id="nextSlide" aria-label="Следующий слайд"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+        <div class="dots" id="dots"></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="hitsT">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2 class="h2" id="hitsT"><span class="hl"><span>Хиты</span></span> продаж</h2>
+        <div class="rail-ctrl">
+          <button type="button" data-rail="-1" aria-label="Прокрутить назад"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <button type="button" data-rail="1" aria-label="Прокрутить вперёд"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+        </div>
+      </div>
+      <div class="rail" id="hits"></div>
+    </div>
+  </section>
+
+  <section class="quiz-box" id="quiz" aria-labelledby="quizT" style="background:var(--white)">
+    <div class="wrap">
+      <h2 class="h2" id="quizT">Подбери технику за 2 минуты, <span class="hl"><span>бесплатно</span></span></h2>
+      <div class="quiz-steps" id="quizSteps"><span class="on">1. Тип техники</span><span>2. Бюджет</span><span>3. Результат</span></div>
+      <div id="quizBody"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="popT" style="background:var(--white)">
+    <div class="wrap">
+      <div class="sec-head"><h2 class="h2" id="popT"><span class="hl"><span>Популярные</span></span> категории</h2></div>
+      <div class="pop" id="pop"></div>
+    </div>
+  </section>
+
+  <section id="catalog" aria-labelledby="catT" style="background:var(--paper)">
+    <div class="wrap">
+      <div class="sec-head"><h2 class="h2" id="catT"><span class="hl"><span>Каталог</span></span> <span id="catTitle">всей техники</span></h2><span id="catCount" class="note" style="font-size:14px"></span></div>
+      <div class="cat-tools">
+        <div class="chips" id="chips"></div>
+        <div class="sort"><label for="sort">Сортировка</label>
+          <select id="sort"><option value="pop">По популярности</option><option value="asc">Сначала дешевле</option><option value="desc">Сначала дороже</option><option value="sale">Со скидкой</option></select>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="perkT">
+    <div class="wrap">
+      <div class="sec-head"><h2 class="h2" id="perkT"><span class="hl"><span>Наши</span></span> преимущества</h2></div>
+      <div class="perks" id="perks"></div>
+    </div>
+  </section>
+
+  <section class="cta" aria-labelledby="ctaT">
+    <div class="wrap">
+      <div>
+        <h2 class="h2" id="ctaT" style="color:var(--white)">Не знаете, что <span style="color:var(--yellow)">выбрать?</span></h2>
+        <p>Оставьте номер — менеджер подберёт технику под ваш бюджет и задачи.</p>
+      </div>
+      <button type="button" class="btn btn-y" data-open="callback" style="position:relative;z-index:2;box-shadow:0 0 0 3px var(--black)">Оставить заявку</button>
+    </div>
+  </section>
+</main>
+
+<footer id="about">
+  <div class="wrap">
+    <div class="f-grid">
+      <div>
+        <div class="f-logo"><span>Mi</span>MOTO</div>
+        <p style="margin:8px 0 14px;font-family:var(--display);font-style:italic;font-weight:800;color:var(--white)">Раскрой мощь машины</p>
+        <p style="margin:0">+7 (800) 000-00-00<br>zabota@mimoto.ru<br>Ежедневно 10:00–20:00</p>
+      </div>
+      <div><h4>Каталог</h4><div id="fCats"></div></div>
+      <div><h4>Покупателям</h4><a href="#about">Оплата</a><a href="#about">Доставка</a><a href="#about">Рассрочка и кредит</a><a href="#about">Гарантия</a><a href="#about">Сервисный центр</a><a href="#about">Возврат</a></div>
+      <div><h4>Компания</h4><a href="#about">О компании</a><a href="#about">Отзывы</a><a href="#about">Новости</a><a href="#about">Сотрудничество</a><a href="#about">Наши партнёры</a><a href="#about">Контакты</a></div>
+    </div>
+    <div class="f-bot">
+      <span>© 2026 MiMoto</span>
+      <span>VK · Telegram · YouTube · <a href="/privacy.html" style="color:inherit">Политика конфиденциальности</a></span>
+    </div>
+  </div>
+</footer>
+
+<button class="chat-fab" id="chatFab" aria-expanded="false" aria-controls="chat"><span class="av">M</span><span class="lbl">Мы онлайн, задавайте вопросы</span></button>
+<div class="chat" id="chat" hidden>
+  <div class="chat-h"><b>Чат с MiMoto</b><button class="icon-btn" id="chatClose" aria-label="Закрыть чат"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="chat-b" id="chatB"><div class="msg them">Здравствуйте! Подскажем по технике, наличию и рассрочке. Что вас интересует?</div></div>
+  <form id="chatForm" class="chat-form" novalidate>
+    <label for="chatIn" class="sr">Ваш вопрос</label><textarea id="chatIn" placeholder="Ваш вопрос"></textarea>
+    <label for="chatPhone" class="sr">Телефон для ответа</label><input id="chatPhone" type="tel" autocomplete="tel" placeholder="Телефон для ответа">
+    <input name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <p class="err" id="chatErr" hidden></p>
+    <button type="submit">Отправить</button>
+    <p class="note">Отправляя вопрос, вы соглашаетесь с <a href="/privacy.html" target="_blank" rel="noopener">политикой обработки персональных данных</a>.</p>
+  </form>
+</div>
+
+<div id="layer"></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/js/categories.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/shop.js"></script>
+</body>
+</html>
