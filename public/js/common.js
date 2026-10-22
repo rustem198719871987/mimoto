@@ -71,8 +71,26 @@ const ART={
   <rect x="68" y="52" width="26" height="14" rx="2" fill="${K}"/>
   <path d="M136 60 L190 40 M184 34 L196 46" stroke="${K}" stroke-width="6" stroke-linecap="round"/>
   <path d="M22 76 L22 54 L58 54" stroke="${K}" stroke-width="5" fill="none"/>`,
+ trike:()=>`${wheel(62,94,20)}${wheel(36,98,20)}${wheel(162,98,20)}
+  <path d="M36 98 L70 74 L128 74 L162 98" stroke="${K}" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="20" y="52" width="44" height="22" rx="3" fill="${Y}"/>
+  <path d="M24 60 L60 60 M24 66 L60 66" stroke="${K}" stroke-width="3"/>
+  <path d="M74 58 L112 56 L114 64 L76 66 Z" fill="${K}"/>
+  <path d="M94 66 L98 74" stroke="${K}" stroke-width="6"/>
+  <path d="M128 74 L148 30" stroke="${G}" stroke-width="7" stroke-linecap="round"/>
+  <path d="M136 28 L162 26" stroke="${K}" stroke-width="5" stroke-linecap="round"/>
+  <path d="M146 60 L176 62 L170 70 L148 68 Z" fill="${Y}"/>`,
+ kick:()=>`${wheel(42,100,16)}${wheel(166,100,16)}
+  <rect x="36" y="84" width="112" height="12" rx="5" fill="${Y}"/>
+  <rect x="58" y="96" width="62" height="7" rx="2" fill="${K}"/>
+  <path d="M148 90 L166 100" stroke="${K}" stroke-width="7" stroke-linecap="round"/>
+  <path d="M152 90 L140 20" stroke="${G}" stroke-width="8" stroke-linecap="round"/>
+  <path d="M124 18 L158 16" stroke="${K}" stroke-width="6" stroke-linecap="round"/>
+  <path d="M26 92 L40 84" stroke="${K}" stroke-width="5" stroke-linecap="round"/>
+  <path d="M98 56 l-8 14 h7 l-4 12 l12 -16 h-7 l4 -10 z" fill="${Y}"/>`,
+ escooter:()=>`${ART.scooter()}<path d="M84 62 l-8 14 h7 l-4 12 l12 -16 h-7 l4 -10 z" fill="${K}"/>`,
  };
-function art(type,label){return `<svg viewBox="0 0 200 120" role="img" aria-label="${esc(label||"")}">${ART[type]()}</svg>`}
+function art(type,label){return `<svg viewBox="0 0 200 120" role="img" aria-label="${esc(label||"")}">${(ART[type]||ART.enduro)()}</svg>`}
 
 const CATS=window.CATS||[];
 const catById=Object.fromEntries(CATS.map(c=>[c.id,c]));
