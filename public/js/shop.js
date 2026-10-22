@@ -68,7 +68,7 @@ function addBtn(p,extra){return p.stock==="out"?`<button class="btn btn-y" disab
 function cartBtn(p){return p.stock==="out"?"":`<button class="btn btn-o" data-add="${p.id}">${cart[p.id]?"В корзине":"В корзину"}</button>`}
 
 /* ---------- город ---------- */
-const CITIES=["Арск","Казань","Москва","Санкт-Петербург","Екатеринбург","Новосибирск","Краснодар","Нижний Новгород","Ростов-на-Дону"];
+const CITIES=["Арск","Тюлячи","Казань","Москва","Санкт-Петербург","Екатеринбург","Новосибирск","Краснодар","Нижний Новгород","Ростов-на-Дону"];
 let city=store.get("city",null);
 const SHOP_CITY="Арск";
 let guess=null; // город, определённый сервером по IP (база DB-IP)

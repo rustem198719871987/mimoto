@@ -78,7 +78,7 @@ const CITY = {
   "arsk": "Арск", "zelenodolsk": "Зеленодольск", "almetyevsk": "Альметьевск", "bugulma": "Бугульма", "chistopol": "Чистополь",
   "leninogorsk": "Лениногорск", "yelabuga": "Елабуга", "elabuga": "Елабуга", "aznakayevo": "Азнакаево", "buinsk": "Буинск",
   "laishevo": "Лаишево", "baltasi": "Балтаси", "kukmor": "Кукмор", "mamadysh": "Мамадыш", "menzelinsk": "Мензелинск",
-  "verkhniy uslon": "Верхний Услон", "stolbishche": "Столбище", "vysokaya gora": "Высокая Гора",
+  "verkhniy uslon": "Верхний Услон", "stolbishche": "Столбище", "vysokaya gora": "Высокая Гора", "tyulyachi": "Тюлячи",
 };
 
 function normCity(s) {
