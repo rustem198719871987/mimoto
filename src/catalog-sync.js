@@ -3,7 +3,9 @@
 // между версиями не перезаписываются при обычном перезапуске.
 //
 // При новой версии файла:
-//  - товары из файла добавляются или обновляются; фото и отметка «Хит» из админки сохраняются;
+//  - новые товары добавляются; товары, чья запись в файле изменилась, обновляются
+//    (фото и отметка «Хит» из админки сохраняются); товары, чья запись не менялась, не трогаются —
+//    так правки цен и наличия в админке не теряются;
 //  - удаляются только товары, которые были в прошлой версии файла (или демо-примеры), а в новой их нет;
 //  - товары, добавленные вручную в админке, не трогаются.
 const fs = require("node:fs");
@@ -24,8 +26,14 @@ function syncCatalog({ db, file, demoIds = [], log = console, onPhotoDropped = (
   try { items = JSON.parse(text); } catch (e) { log.error("Каталог: файл повреждён, пропускаю:", e.message); return null; }
   if (!Array.isArray(items)) { log.error("Каталог: в файле не список товаров, пропускаю."); return null; }
 
-  let prevIds;
+  let prevIds, prevRows;
   try { prevIds = JSON.parse((getMeta.get("catalog_ids") || {}).value || "null"); } catch { prevIds = null; }
+  // Хеш каждой записи прошлой версии файла: по нему видно, какие товары в файле изменились.
+  // Нет хешей, но каталог уже загружался (сайт обновился со старой версии) — у существующих товаров
+  // обновляем только описательные поля, цены и наличие из админки не трогаем.
+  try { prevRows = JSON.parse((getMeta.get("catalog_rows") || {}).value || "null"); } catch { prevRows = null; }
+  const legacy = !prevRows && !!prevIds;
+  const rowHash = (raw) => crypto.createHash("sha256").update(JSON.stringify(raw)).digest("hex");
   // Первая загрузка каталога заменяет демо-примеры из scripts/seed-products.json
   const removable = new Set(prevIds || demoIds);
 
@@ -37,8 +45,8 @@ function syncCatalog({ db, file, demoIds = [], log = console, onPhotoDropped = (
     rate=:rate,reviews=:rev,descr=:desc,specs=:specs,photo=:photo,sort=:sort,updated_at=:now WHERE id=:id`);
   const del = db.prepare("DELETE FROM products WHERE id = ?");
 
-  const ids = [], skipped = [], dropped = [];
-  let added = 0, updated = 0, removed = 0;
+  const ids = [], skipped = [], dropped = [], rows = {};
+  let added = 0, updated = 0, unchanged = 0, removed = 0;
   db.exec("BEGIN IMMEDIATE");
   try {
     for (const raw of items) {
@@ -46,11 +54,16 @@ function syncCatalog({ db, file, demoIds = [], log = console, onPhotoDropped = (
       const { value: p, error } = validate.product(raw);
       if (!id || error) { skipped.push(`${(raw && raw.name) || "?"}: ${error || "нет id"}`); continue; }
       const cur = get.get(id);
+      rows[id] = rowHash(raw);
+      ids.push(id);
+      if (cur && prevRows && prevRows[id] === rows[id]) { unchanged++; continue; } // запись не менялась
       if (cur) { p.photo = cur.photo ?? null; p.hit = !!cur.hit; } // фото и «Хит» ведутся в админке
+      if (cur && legacy) {
+        Object.assign(p, { price: cur.price, old: cur.old_price ?? null, stock: cur.stock, hidden: !!cur.hidden, rate: cur.rate, rev: cur.reviews });
+      }
       const row = { id, name: p.name, cat: p.cat, price: p.price, old: p.old, hit: p.hit ? 1 : 0, stock: p.stock, hidden: p.hidden ? 1 : 0,
         rate: p.rate, rev: p.rev, desc: p.desc, specs: JSON.stringify(p.specs), photo: p.photo, sort: p.sort, now };
       if (cur) { upd.run(row); updated++; } else { ins.run(row); added++; }
-      ids.push(id);
     }
     if (ids.length) {
       const keep = new Set(ids);
@@ -60,6 +73,7 @@ function syncCatalog({ db, file, demoIds = [], log = console, onPhotoDropped = (
         if (cur) { del.run(id); removed++; if (cur.photo) dropped.push(cur.photo); }
       }
       setMeta.run("catalog_ids", JSON.stringify(ids));
+      setMeta.run("catalog_rows", JSON.stringify(rows));
     }
     setMeta.run("catalog_hash", hash);
     db.exec("COMMIT");
@@ -68,8 +82,8 @@ function syncCatalog({ db, file, demoIds = [], log = console, onPhotoDropped = (
     throw e;
   }
   dropped.forEach(onPhotoDropped);
-  const result = { added, updated, removed, skipped };
-  log.log(`Каталог загружен: добавлено ${added}, обновлено ${updated}, удалено ${removed}${skipped.length ? `, пропущено ${skipped.length}: ${skipped.slice(0, 3).join("; ")}` : ""}`);
+  const result = { added, updated, unchanged, removed, skipped };
+  log.log(`Каталог загружен: добавлено ${added}, обновлено ${updated}, без изменений ${unchanged}, удалено ${removed}${skipped.length ? `, пропущено ${skipped.length}: ${skipped.slice(0, 3).join("; ")}` : ""}`);
   return result;
 }
 

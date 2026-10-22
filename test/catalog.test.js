@@ -66,3 +66,37 @@ test("настоящий catalog/katalog.json проходит проверку 
   assert.equal(r.added, items.length);
   assert.equal(new Set(items.map((p) => p.id)).size, items.length, "id не повторяются");
 });
+
+test("новая версия не трогает товары, чья запись в файле не менялась (правки админки остаются)", () => {
+  write([
+    { id: "kugoo-m4", name: "Электросамокат Kugoo M4", cat: "kick", price: 39990 },
+    { id: "wolf-33", name: "Эндуро Hammer WOLF 33", cat: "enduro", price: 79990 },
+  ]);
+  sync();
+  db.prepare("UPDATE products SET price = 36990, stock = 'order' WHERE id = 'kugoo-m4'").run(); // правка в админке
+  write([
+    { id: "kugoo-m4", name: "Электросамокат Kugoo M4", cat: "kick", price: 39990 },
+    { id: "wolf-33", name: "Питбайк Hammer WOLF 33", cat: "pit", price: 79990 },
+  ]);
+  const r = sync();
+  assert.deepEqual([r.added, r.updated, r.unchanged, r.removed], [0, 1, 1, 0]);
+  assert.equal(row("kugoo-m4").price, 36990, "цена из админки сохранилась");
+  assert.equal(row("kugoo-m4").stock, "order");
+  assert.equal(row("wolf-33").name, "Питбайк Hammer WOLF 33");
+  assert.equal(row("wolf-33").cat, "pit");
+});
+
+test("переход со старой версии сайта: у загруженных товаров меняются описания, но не цены", () => {
+  const db3 = open(path.join(dir, "legacy.db"));
+  const f3 = path.join(dir, "legacy.json");
+  db3.exec("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)");
+  db3.prepare(`INSERT INTO products (id,name,cat,price,stock,created_at,updated_at) VALUES ('wolf-33','Эндуро Hammer WOLF 33','enduro',75000,'order',?,?)`).run(now, now);
+  db3.prepare("INSERT INTO meta VALUES ('catalog_hash','old'),('catalog_ids','[\"wolf-33\"]')").run(); // хешей записей ещё нет
+  fs.writeFileSync(f3, JSON.stringify([{ id: "wolf-33", name: "Питбайк Hammer WOLF 33", cat: "pit", price: 79990, stock: "in" }]));
+  syncCatalog({ db: db3, file: f3, log: silent });
+  const w = db3.prepare("SELECT * FROM products WHERE id = 'wolf-33'").get();
+  assert.equal(w.name, "Питбайк Hammer WOLF 33");
+  assert.equal(w.cat, "pit");
+  assert.equal(w.price, 75000, "цена из админки не тронута");
+  assert.equal(w.stock, "order");
+});
