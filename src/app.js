@@ -11,6 +11,7 @@ const { open, rowToProduct } = require("./db");
 const validate = require("./validate");
 const wa = require("../public/js/wa.js");
 const { createAuth } = require("./auth");
+const { syncCatalog } = require("./catalog-sync");
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 
@@ -87,6 +88,13 @@ function createApp(config) {
     }
   }
   cleanOrphanPhotos();
+
+  // Каталог из репозитория (catalog/katalog.json): новая версия файла загружается один раз при запуске
+  if (config.catalogFile) {
+    let demoIds = [];
+    try { demoIds = require("../scripts/seed-products.json").map((p) => p.id); } catch { /* нет примеров — нечего заменять */ }
+    syncCatalog({ db, file: config.catalogFile, demoIds, log, onPhotoDropped: dropPhotoIfUnused });
+  }
 
   const app = express();
   app.disable("x-powered-by");

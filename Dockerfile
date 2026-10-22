@@ -9,6 +9,7 @@ RUN npm ci --omit=dev --no-audit --no-fund
 COPY server.js ./
 COPY src ./src
 COPY scripts ./scripts
+COPY catalog ./catalog
 COPY public ./public
 
 # База и фото лежат в /app/data — этот каталог подключается томом и переживает пересборку

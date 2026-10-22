@@ -13,6 +13,7 @@ if (!env.SESSION_SECRET) console.warn("SESSION_SECRET не задан — пос
 const app = createApp({
   dataDir: path.resolve(env.DATA_DIR || path.join(__dirname, "data")),
   adminPassword: env.ADMIN_PASSWORD || "",
+  catalogFile: path.join(__dirname, "catalog", "katalog.json"),
   sessionSecret: env.SESSION_SECRET || crypto.randomBytes(32).toString("hex"),
 });
 
