@@ -15,10 +15,10 @@ const PERKS=[
  ["Доставка по всей России",'<path d="M2 14l7-2 4-8 2 1-2 7 6-1 2-3h2l-1 5 1 5h-2l-2-3-6-1 2 7-2 1-4-8-7-2z"/>'],
  ["Гарантия на все товары",'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M5 15l7-5 7 5"/>'],
  ["Рассрочка без процентов",'<circle cx="12" cy="12" r="9"/><path d="M8 16l8-8"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/>'],
- ["Быстрый возврат товара",'<path d="M4 10a8 8 0 0 1 14-4l2 2"/><path d="M20 4v4h-4"/><path d="M20 14a8 8 0 0 1-14 4l-2-2"/><path d="M4 20v-4h4"/>'],
  ["Самовывоз через 60 минут",'<path d="M3 7l9-4 9 4v10l-9 4-9-4V7z"/><path d="M3 7l9 4 9-4M12 11v10M7.5 5l9 4"/>']
 ];
 const SLIDES=[
+ {kick:"Сезонная распродажа.",title:"Скидки до 70% на всю технику",text:"Эндуро, питбайки, электросамокаты, электровелосипеды, квадроциклы и снегоходы — по сниженным ценам, пока идёт сезон распродаж.",art:"sale",dark:true,cta:"Смотреть скидки",act:"sale"},
  {kick:"Сезон снегоходов открыт.",title:"Снегоходы и буксировщики в наличии",text:"Подготовим технику к зиме, поможем с регистрацией и прицепом.",art:"snow",dark:true,cta:"Смотреть снегоходы",act:"cat:snow"},
  {kick:"Рассрочка 0%.",title:"Забирай мото сегодня — плати частями",text:"Без первого взноса и переплаты на срок до 36 месяцев. Решение за 15 минут.",art:"pit",dark:false,cta:"Подобрать технику",act:"quiz"}
 ];
@@ -257,7 +257,7 @@ document.addEventListener("click",e=>{
   if(d.reset!==undefined){filter={cat:null,q:"",favOnly:false,sort:filter.sort,limit:12};$("#q").value="";renderCatalog();return}
   if(d.city){city=d.city;store.set("city",city);renderCity();refreshCards();toast("Город: "+city);return}
   if(d.cityList!==undefined){renderCity("list");return}
-  if(d.act){const a=d.act;if(a==="callback")openBuy("consult");else if(a==="quiz")$("#quiz").scrollIntoView({behavior:"smooth"});else if(a.startsWith("cat:"))showCat(a.slice(4));return}
+  if(d.act){const a=d.act;if(a==="callback")openBuy("consult");else if(a==="quiz")$("#quiz").scrollIntoView({behavior:"smooth"});else if(a==="sale"){filter={...filter,cat:null,q:"",favOnly:false,sort:"sale",limit:12};$("#q").value="";$("#sort").value="sale";renderCatalog();$("#catalog").scrollIntoView({behavior:"smooth"})}else if(a.startsWith("cat:"))showCat(a.slice(4));return}
 });
 $("#cityBtn").addEventListener("click",e=>{e.stopPropagation();$("#cityPop").hidden?renderCity(city?"list":"confirm"):renderCity()});
 $("#megaBtn").addEventListener("click",()=>{const m=$("#mega");m.hidden=!m.hidden;$("#megaBtn").setAttribute("aria-expanded",String(!m.hidden))});

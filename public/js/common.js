@@ -114,6 +114,10 @@ const ART={
   <path d="M112 60 L118 34 L146 34 L144 44 L126 46 L124 60 Z" fill="${K}"/>
   <path d="M80 60 L72 38" stroke="${K}" stroke-width="5" stroke-linecap="round"/>
   <ellipse cx="72" cy="34" rx="14" ry="4" fill="${G}"/>`,
+ sale:()=>`<path d="M30 30 L120 30 L170 60 L120 90 L30 90 Z" fill="${Y}"/>
+  <circle cx="150" cy="60" r="6" fill="${K}"/>
+  <text x="76" y="74" text-anchor="middle" font-family="Exo 2, sans-serif" font-style="italic" font-weight="900" font-size="36" fill="${K}">−70%</text>
+  <path d="M156 60 Q174 52 192 70" stroke="${K}" stroke-width="3" fill="none"/>`,
  parts:()=>`<g transform="translate(100 60)">
   ${Array.from({length:8},(_,k)=>`<rect x="-7" y="-46" width="14" height="16" rx="2" fill="${Y}" transform="rotate(${k*45})"/>`).join("")}
   <circle r="34" fill="${Y}"/><circle r="14" fill="${K}"/></g>
