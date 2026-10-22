@@ -89,6 +89,23 @@ const ART={
   <path d="M26 92 L40 84" stroke="${K}" stroke-width="5" stroke-linecap="round"/>
   <path d="M98 56 l-8 14 h7 l-4 12 l12 -16 h-7 l4 -10 z" fill="${Y}"/>`,
  escooter:()=>`${ART.scooter()}<path d="M84 62 l-8 14 h7 l-4 12 l12 -16 h-7 l4 -10 z" fill="${K}"/>`,
+ ebike:()=>`<circle cx="46" cy="88" r="26" fill="none" stroke="${K}" stroke-width="6"/><circle cx="156" cy="88" r="26" fill="none" stroke="${K}" stroke-width="6"/>
+  <circle cx="46" cy="88" r="4" fill="${Y}"/><circle cx="156" cy="88" r="4" fill="${Y}"/>
+  <path d="M46 88 L84 88 L126 50 L74 50 L84 88 M74 50 L68 36 M126 50 L156 88 M126 50 L120 30" stroke="${K}" stroke-width="6" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M56 34 L80 34" stroke="${K}" stroke-width="7" stroke-linecap="round"/>
+  <path d="M110 28 L132 26" stroke="${K}" stroke-width="5" stroke-linecap="round"/>
+  <rect x="86" y="54" width="34" height="14" rx="3" fill="${Y}" transform="rotate(-42 103 61)"/>
+  <path d="M98 86 l-8 14 h7 l-4 12 l12 -16 h-7 l4 -10 z" stroke="${K}" stroke-width="1" fill="${Y}"/>`,
+ epit:()=>`${ART.pit()}<path d="M103 70 l-7 10 h6 l-3 9 l10 -12 h-6 l3 -7 z" fill="${Y}"/>`,
+ moto:()=>`${wheel(46,94,24)}${wheel(158,94,24)}
+  <path d="M46 94 L96 84" stroke="${K}" stroke-width="7" stroke-linecap="round"/>
+  <path d="M158 94 L136 44" stroke="${G}" stroke-width="7" stroke-linecap="round"/>
+  <rect x="82" y="68" width="34" height="22" rx="4" fill="${K}"/><circle cx="99" cy="79" r="6" fill="${G}"/>
+  <path d="M60 64 L96 56 L132 54 L150 50 L170 62 L152 76 L120 74 L94 78 L70 76 Z" fill="${Y}"/>
+  <path d="M40 58 L88 52 L94 60 L52 66 Z" fill="${K}"/>
+  <path d="M146 50 L160 36 L170 40 L162 54 Z" fill="${G}" opacity=".85"/>
+  <path d="M132 40 L150 36" stroke="${K}" stroke-width="5" stroke-linecap="round"/>
+  <path d="M28 64 L48 60 L46 68 L32 70 Z" fill="${Y}"/>`,
  };
 function art(type,label){return `<svg viewBox="0 0 200 120" role="img" aria-label="${esc(label||"")}">${(ART[type]||ART.enduro)()}</svg>`}
 
