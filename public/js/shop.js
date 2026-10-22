@@ -71,15 +71,26 @@ function cartBtn(p){return p.stock==="out"?"":`<button class="btn btn-o" data-ad
 const CITIES=["Арск","Казань","Москва","Санкт-Петербург","Екатеринбург","Новосибирск","Краснодар","Нижний Новгород","Ростов-на-Дону"];
 let city=store.get("city",null);
 const SHOP_CITY="Арск";
+let guess=null; // город, определённый сервером по IP (база DB-IP)
+// Пока посетитель не выбрал город, спрашиваем про город, определённый по IP; не получилось — про Арск
+async function detectCity(){
+  try{
+    const r=await fetch("/api/geo",{headers:{Accept:"application/json"},signal:AbortSignal.timeout(3000)});
+    if(r.ok){const d=await r.json();if(d&&typeof d.city==="string"&&d.city)guess=d.city}
+  }catch(e){}
+  if(!city)renderCity("confirm");
+}
 function cityShort(){return city||SHOP_CITY}
 function renderCity(ask){
   $("#cityName").textContent=city||"Выберите ваш город";
   const pop=$("#cityPop");
   if(ask==="confirm"){
-    pop.innerHTML=`<p><b>${SHOP_CITY}</b> — это ваш город?</p><div class="row"><button data-city="${SHOP_CITY}">Да</button><button data-city-list>Нет</button></div>`;
+    const g=guess||SHOP_CITY;
+    pop.innerHTML=`<p><b>${esc(g)}</b> — это ваш город?</p><div class="row"><button data-city="${esc(g)}">Да</button><button data-city-list>Нет</button></div>`;
     pop.hidden=false;
   }else if(ask==="list"){
-    pop.innerHTML=`<p>Выберите город</p><div class="city-list">${CITIES.map(c=>`<button data-city="${c}">${c}</button>`).join("")}</div>`;
+    const list=guess&&!CITIES.includes(guess)?[guess,...CITIES]:CITIES;
+    pop.innerHTML=`<p>Выберите город</p><div class="city-list">${list.map(c=>`<button data-city="${esc(c)}">${esc(c)}</button>`).join("")}</div>`;
     pop.hidden=false;
   }else pop.hidden=true;
   $("#cityBtn").setAttribute("aria-expanded",String(!pop.hidden));
@@ -184,6 +195,7 @@ function openDetail(id){
   <div class="modal-b"><div class="pd"><div class="pic" style="aspect-ratio:4/3">${picHtml(p)}${p.hit?'<span class="tag-hit">ХИТ</span>':""}<div class="mark">MIMOTO<span>MOTO</span></div></div>
   <div><h2 class="h2" style="font-size:28px">${esc(p.name)}</h2>
   <div style="margin-top:12px">${stockHtml(p)}</div>
+  ${city&&city!==SHOP_CITY?`<p class="note" style="margin:8px 0 0;font-size:14px">Доставка в г. ${esc(city)} — сроки и стоимость подскажем в WhatsApp.</p>`:""}
   ${p.desc?`<p style="margin:12px 0 0;white-space:pre-line">${esc(p.desc)}</p>`:""}
   ${p.specs.length?`<dl class="specs">${p.specs.map(s=>`<div><dt>${esc(s.k)}</dt><dd>${esc(s.v)}</dd></div>`).join("")}</dl>`:'<div style="height:14px"></div>'}
   <div class="price-row" style="margin-bottom:14px"><div class="price" style="font-size:30px">${rub(p.price)}${p.old?`<s>${rub(p.old)}</s>`:""}</div><div class="credit">В рассрочку<b>от ${rub(monthly(p.price))} / мес.</b></div></div>
@@ -285,6 +297,6 @@ async function loadProducts(){
   refreshCards();renderCounts();
 }
 /* старт */
-renderNav();renderCity(city?null:"confirm");renderSlider();restart();renderHits();renderQuiz();renderPop();renderCatalog();renderPerks();renderCounts();
+renderNav();if(city)renderCity();else detectCity();renderSlider();restart();renderHits();renderQuiz();renderPop();renderCatalog();renderPerks();renderCounts();
 loadProducts();
 })();

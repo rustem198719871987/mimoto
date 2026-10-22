@@ -12,6 +12,7 @@ const validate = require("./validate");
 const wa = require("../public/js/wa.js");
 const { createAuth } = require("./auth");
 const { syncCatalog } = require("./catalog-sync");
+const { createGeo } = require("./geo");
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 
@@ -123,6 +124,12 @@ function createApp(config) {
   // ---------- публичная часть ----------
   app.get("/js/categories.js", (req, res) => {
     res.type("application/javascript").set("Cache-Control", "no-cache").send(`window.CATS=${JSON.stringify(CATS)};`);
+  });
+
+  // Город посетителя по IP (локальная база DB-IP) — для вопроса «Москва — это ваш город?»
+  const geo = config.geo ? createGeo({ dir: path.join(config.dataDir, "geo"), log, autoUpdate: config.geo !== "local" }) : null;
+  app.get("/api/geo", (req, res) => {
+    res.set("Cache-Control", "no-store").json({ city: geo ? geo.cityForIp(req.ip) : null });
   });
 
   app.get("/api/products", (req, res) => {
