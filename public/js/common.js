@@ -97,6 +97,28 @@ const ART={
   <rect x="86" y="54" width="34" height="14" rx="3" fill="${Y}" transform="rotate(-42 103 61)"/>
   <path d="M98 86 l-8 14 h7 l-4 12 l12 -16 h-7 l4 -10 z" stroke="${K}" stroke-width="1" fill="${Y}"/>`,
  epit:()=>`${ART.pit()}<path d="M103 70 l-7 10 h6 l-3 9 l10 -12 h-6 l3 -7 z" fill="${Y}"/>`,
+ buggy:()=>`${wheel(44,94,24)}${wheel(160,94,24)}
+  <path d="M30 78 L60 62 L150 62 L176 78 Z" fill="${Y}"/>
+  <path d="M62 62 L80 26 L140 26 L150 62 M80 26 L96 62 M140 26 L128 62" stroke="${K}" stroke-width="5" fill="none" stroke-linejoin="round"/>
+  <rect x="90" y="48" width="26" height="14" rx="3" fill="${K}"/>
+  <path d="M120 48 L132 40" stroke="${K}" stroke-width="4" stroke-linecap="round"/>
+  <path d="M30 78 L176 78" stroke="${K}" stroke-width="4"/>`,
+ kids:()=>`${wheel(52,96,16)}${wheel(150,96,16)}
+  <path d="M26 92 L26 66 Q26 58 34 58 L56 58 L70 34 L134 34 Q142 34 146 42 L156 58 L170 60 Q178 62 178 70 L178 92 Z" fill="${Y}"/>
+  <path d="M78 40 L74 56 L104 56 L104 40 Z M112 40 L112 56 L148 56 L140 40 Z" fill="${K}"/>
+  <path d="M26 76 L178 76" stroke="${K}" stroke-width="3"/>
+  <rect x="166" y="64" width="10" height="6" rx="2" fill="${K}"/>`,
+ garden:()=>`${wheel(150,92,26)}${wheel(52,100,16)}
+  <path d="M34 84 L60 60 L156 60 L176 76 L176 84 Z" fill="${Y}"/>
+  <rect x="36" y="86" width="132" height="10" rx="3" fill="${K}"/>
+  <path d="M112 60 L118 34 L146 34 L144 44 L126 46 L124 60 Z" fill="${K}"/>
+  <path d="M80 60 L72 38" stroke="${K}" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="72" cy="34" rx="14" ry="4" fill="${G}"/>`,
+ parts:()=>`<g transform="translate(100 60)">
+  ${Array.from({length:8},(_,k)=>`<rect x="-7" y="-46" width="14" height="16" rx="2" fill="${Y}" transform="rotate(${k*45})"/>`).join("")}
+  <circle r="34" fill="${Y}"/><circle r="14" fill="${K}"/></g>
+  <path d="M120 96 L170 46" stroke="${K}" stroke-width="10" stroke-linecap="round"/>
+  <path d="M164 38 a12 12 0 1 0 14 14 l-8 -2 l-4 -4 z" fill="${K}"/>`,
  moto:()=>`${wheel(46,94,24)}${wheel(158,94,24)}
   <path d="M46 94 L96 84" stroke="${K}" stroke-width="7" stroke-linecap="round"/>
   <path d="M158 94 L136 44" stroke="${G}" stroke-width="7" stroke-linecap="round"/>

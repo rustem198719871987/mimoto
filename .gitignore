@@ -5,3 +5,4 @@ backups/
 dist/
 mimoto-install.sh
 *.zip
+mimoto-katalog*.json

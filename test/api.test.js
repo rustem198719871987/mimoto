@@ -163,3 +163,33 @@ test("короткие ссылки из QR-кодов ведут в WhatsApp с
   assert.equal(await go("/w?p=../../etc"), wa.text("consult"));
   assert.equal(await go("/w"), wa.text("consult"));
 });
+
+test("импорт сохраняет загруженное фото, «Заменить каталог» удаляет лишнее", async () => {
+  const fd = new FormData();
+  fd.append("photo", new Blob([PNG], { type: "image/png" }), "x.png");
+  const photo = (await json(await req("POST", "/api/admin/upload", fd))).body.photo;
+  await req("POST", "/api/admin/import", [{ id: "keep-photo", name: "Электросамокат Тест", cat: "kick", price: 30000, photo }]);
+  // повторный импорт без поля photo — фото остаётся
+  await req("POST", "/api/admin/import", [{ id: "keep-photo", name: "Электросамокат Тест", cat: "kick", price: 31000 }]);
+  let all = (await json(await req("GET", "/api/admin/products"))).body;
+  const kp = all.find((p) => p.id === "keep-photo");
+  assert.equal(kp.price, 31000);
+  assert.equal(kp.photo, photo);
+
+  const before = all.length;
+  const r = (await json(await req("POST", "/api/admin/import?replace=1", [
+    { id: "keep-photo", name: "Электросамокат Тест", cat: "kick", price: 32000 },
+    { id: "new-trike", name: "Трицикл Тест", cat: "trike", price: 85000 },
+  ]))).body;
+  assert.equal(r.updated, 1);
+  assert.equal(r.added, 1);
+  assert.equal(r.removed, before - 1);
+  all = (await json(await req("GET", "/api/admin/products"))).body;
+  assert.deepEqual(all.map((p) => p.id).sort(), ["keep-photo", "new-trike"]);
+  assert.equal(all.find((p) => p.id === "keep-photo").photo, photo);
+
+  // пустой или целиком ошибочный файл не стирает каталог
+  const bad = (await json(await req("POST", "/api/admin/import?replace=1", [{ name: "", price: 0 }]))).body;
+  assert.equal(bad.removed, 0);
+  assert.equal((await json(await req("GET", "/api/admin/products"))).body.length, 2);
+});

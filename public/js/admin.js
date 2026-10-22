@@ -65,10 +65,11 @@ function renderProductsView(){
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button class="btn btn-y" data-act="new">+ Добавить товар</button>
         <a class="mini" href="/api/admin/export" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">Экспорт JSON</a>
-        <label class="mini" for="admImport" style="display:inline-flex;align-items:center;cursor:pointer">Импорт JSON</label><input type="file" id="admImport" accept="application/json,.json" hidden>
+        <label class="mini" for="admImport" style="display:inline-flex;align-items:center;cursor:pointer" title="Добавить новые товары и обновить существующие">Импорт JSON</label><input type="file" id="admImport" accept="application/json,.json" hidden>
+        <label class="mini" for="admReplace" style="display:inline-flex;align-items:center;cursor:pointer" title="Каталог станет точно как в файле: товары, которых нет в файле, удалятся">Заменить каталог</label><input type="file" id="admReplace" accept="application/json,.json" hidden>
       </div>
     </div>
-    <p class="save-state" id="saveState" aria-live="polite" style="margin:0 0 12px;color:var(--muted)"><span id="admCount"></span> Цена, наличие и флажки сохраняются сразу при изменении.</p>
+    <p class="save-state" style="margin:0 0 12px;color:var(--muted)"><span id="admCount"></span> <span id="saveState" aria-live="polite">Цена, наличие и флажки сохраняются сразу при изменении.</span></p>
     <div class="adm-table-box"><table class="adm-table"><thead><tr><th>Фото</th><th>Товар</th><th>Категория</th><th>Цена, ₽</th><th>Старая цена, ₽</th><th>Наличие</th><th>Хит</th><th>На сайте</th><th></th></tr></thead><tbody id="admRows"></tbody></table></div>
   </div>`;
   renderRows();
@@ -101,8 +102,8 @@ async function inlineSave(el){
   else if(f==="hit")patch={hit:el.checked};
   else if(f==="show")patch={hidden:!el.checked};
   st.textContent="Сохраняем…";
-  try{const np=await api("PATCH","/api/admin/products/"+id,patch);Object.assign(p,np);st.innerHTML=`<span id="admCount"></span> Сохранено: ${esc(np.name)}.`;renderRows()}
-  catch(e){st.innerHTML=`<span id="admCount"></span> <span class="err">${esc(e.message)}</span>`;renderRows()}
+  try{const np=await api("PATCH","/api/admin/products/"+id,patch);Object.assign(p,np);st.innerHTML=`Сохранено: ${esc(np.name)}.`;renderRows()}
+  catch(e){st.innerHTML=`<span class="err">${esc(e.message)}</span>`;renderRows()}
 }
 
 /* ---------- товары: форма ---------- */
@@ -189,12 +190,27 @@ async function saveProduct(){
   }catch(e){$("#fSave").disabled=false;if(!(e instanceof AuthError)){err.textContent=e.message;err.hidden=false}}
 }
 function toList(){adm.view="list";adm.edit=null;adm.photo=undefined;renderView()}
-async function importFile(file){
-  const st=$("#saveState");let arr;
-  try{arr=JSON.parse(await file.text())}catch(e){st.textContent="Файл не похож на JSON. Выберите файл, сохранённый через «Экспорт JSON».";return}
-  st.textContent="Импортируем…";
-  try{const r=await api("POST","/api/admin/import",arr);await loadProducts();renderRows();
-    $("#saveState").innerHTML=`<span id="admCount"></span> Добавлено: ${r.added}, обновлено: ${r.updated}${r.skipped.length?`, пропущено: ${r.skipped.length} (${esc(r.skipped.slice(0,3).join("; "))}${r.skipped.length>3?"…":""})`:""}.`;renderRows()}
+let pendingReplace=null;
+async function readJson(file){
+  const st=$("#saveState");
+  try{const arr=JSON.parse(await file.text());if(!Array.isArray(arr))throw 0;return arr}
+  catch(e){st.textContent="Файл не похож на список товаров. Выберите файл, сохранённый через «Экспорт JSON».";return null}
+}
+async function importFile(file,replace){
+  const st=$("#saveState");const arr=await readJson(file);if(!arr)return;
+  if(replace){
+    const ids=new Set(arr.map(x=>x&&x.id).filter(Boolean));
+    const gone=P.filter(p=>!ids.has(p.id));
+    pendingReplace=arr;
+    st.innerHTML=`<b>Заменить каталог?</b> В файле ${arr.length} ${plural(arr.length,"товар","товара","товаров")}. ${gone.length?`Будут удалены ${gone.length} ${plural(gone.length,"товар","товара","товаров")}, которых нет в файле (вместе с их фото).`:"Удалять ничего не придётся."} <button class="mini solid-danger" data-act="replace-yes">Да, заменить</button> <button class="mini" data-act="replace-no">Отмена</button>`;
+    return;
+  }
+  await runImport(arr,false);
+}
+async function runImport(arr,replace){
+  const st=$("#saveState");st.textContent="Импортируем…";
+  try{const r=await api("POST","/api/admin/import"+(replace?"?replace=1":""),arr);await loadProducts();renderRows();
+    $("#saveState").innerHTML=`Добавлено: ${r.added}, обновлено: ${r.updated}${r.removed?`, удалено: ${r.removed}`:""}${r.skipped.length?`, пропущено: ${r.skipped.length} (${esc(r.skipped.slice(0,3).join("; "))}${r.skipped.length>3?"…":""})`:""}.`;renderRows()}
   catch(e){if(!(e instanceof AuthError))st.textContent=e.message}
 }
 
@@ -214,12 +230,14 @@ document.addEventListener("click",async e=>{
     if(a==="del-no"){adm.confirm=null;renderRows();return}
     if(a==="del-yes"){adm.confirm=null;await api("DELETE","/api/admin/products/"+d.id);await loadProducts();renderRows();toast("Товар удалён");return}
     if(a==="photo-rm"){adm.photo=null;rerenderForm();return}
+    if(a==="replace-yes"){const arr=pendingReplace;pendingReplace=null;if(arr)await runImport(arr,true);return}
+    if(a==="replace-no"){pendingReplace=null;$("#saveState").innerHTML=`Замена каталога отменена.`;renderRows();return}
   }catch(er){fail(er)}
 });
 document.addEventListener("change",e=>{
   const el=e.target;
   if(el.matches("#admRows [data-f]"))inlineSave(el);
-  else if(el.id==="admImport"){const f=el.files[0];el.value="";if(f)importFile(f)}
+  else if(el.id==="admImport"||el.id==="admReplace"){const f=el.files[0];el.value="";if(f)importFile(f,el.id==="admReplace")}
   else if(el.id==="fPhoto")uploadPhoto(el.files[0]);
   else if(el.id==="admCat"){adm.cat=el.value;renderRows()}
 });

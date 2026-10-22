@@ -219,20 +219,31 @@ function createApp(config) {
   });
 
   // Импорт: товары с тем же id обновляются, остальные добавляются. Формат — как у экспорта.
+  // Если у товара в файле нет поля photo, уже загруженное фото сохраняется.
+  // ?replace=1 — заменить каталог: товары, которых нет в файле, удаляются.
   admin.post("/import", (req, res) => {
     if (!Array.isArray(req.body)) return res.status(400).json({ error: "В файле должен быть список товаров." });
-    let added = 0, updated = 0;
-    const skipped = [];
+    const replace = req.query.replace === "1";
+    let added = 0, updated = 0, removed = 0;
+    const skipped = [], seen = new Set(), dropPhotos = [];
     tx(() => {
       for (const [n, raw] of req.body.entries()) {
         const { value, error } = validate.product(raw);
         if (error) { skipped.push(`№${n + 1}: ${error}`); continue; }
-        if (value.photo && !photoExists(value.photo)) value.photo = null;
         const id = raw && typeof raw.id === "string" && validate.ID_RE.test(raw.id) ? raw.id : newId();
-        if (q.get.get(id)) { q.update.run(params(id, value)); updated++; } else { q.insert.run(params(id, value)); added++; }
+        const cur = q.get.get(id);
+        if (!("photo" in raw) && cur) value.photo = cur.photo ?? null;
+        if (value.photo && !photoExists(value.photo)) value.photo = null;
+        if (cur) { q.update.run(params(id, value)); updated++; if (cur.photo && cur.photo !== value.photo) dropPhotos.push(cur.photo); }
+        else { q.insert.run(params(id, value)); added++; }
+        seen.add(id);
+      }
+      if (replace && seen.size) {
+        for (const r of q.all.all()) if (!seen.has(r.id)) { q.del.run(r.id); removed++; if (r.photo) dropPhotos.push(r.photo); }
       }
     });
-    res.json({ added, updated, skipped });
+    dropPhotos.forEach(dropPhotoIfUnused);
+    res.json({ added, updated, removed, skipped });
   });
 
   app.use("/api/admin", admin);
